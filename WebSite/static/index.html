@@ -1,0 +1,1995 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comparateur d'Assurance Auto - Maroc</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.2);
+        }
+
+        .shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        .promoted-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: linear-gradient(135deg, #F59E0B, #EF4444);
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+            z-index: 10;
+        }
+
+        .best-price-badge {
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            background: linear-gradient(135deg, #10B981, #059669);
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+            z-index: 10;
+        }
+
+        .duration-toggle {
+            display: inline-flex;
+            background: #f3f4f6;
+            border-radius: 9999px;
+            padding: 4px;
+        }
+
+        .duration-btn {
+            padding: 8px 20px;
+            border-radius: 9999px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .duration-btn.active {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .select-option {
+            padding: 6px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+
+        .select-option:hover {
+            border-color: #3B82F6;
+        }
+
+        .select-option.selected {
+            border-color: #3B82F6;
+            background: #EFF6FF;
+        }
+
+        .not-eligible {
+            opacity: 0.5;
+        }
+
+        .constraint-message {
+            background: #FEF3C7;
+            border-left: 4px solid #F59E0B;
+            padding: 12px;
+            margin-top: 12px;
+            border-radius: 0 8px 8px 0;
+            font-size: 13px;
+            color: #92400E;
+        }
+
+        /* AXA option select styling */
+        .axa-select {
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .axa-select:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+
+        /* MCMA option select styling */
+        .mcma-select {
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .mcma-select:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
+
+        /* Loading overlay animation */
+        .loading-overlay {
+            transition: opacity 0.2s;
+        }
+
+        /* Price update highlight animation */
+        [data-price-total] {
+            transition: color 0.3s ease;
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Assistance option card */
+        .assistance-option-card {
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        .assistance-option-card:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+        }
+
+        .assistance-option-card.selected {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased bg-slate-50 min-h-screen">
+    <!-- Top Navigation Bar -->
+    <nav class="bg-white/97 backdrop-blur-md shadow-sm fixed top-0 left-0 right-0 z-50 border-b border-slate-100">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-xl font-bold text-blue-600">MesAssurances.ma</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <!-- Settings Link -->
+                <a href="/settings" class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-all duration-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    Paramètres
+                </a>
+                <!-- Dashboard Link (for admin) -->
+                <a href="/admin" class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-all duration-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                    </svg>
+                    Dashboard
+                </a>
+                <!-- Logout Button -->
+                <a href="/logout" class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-200 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                    Déconnexion
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <div class="gradient-bg min-h-[42vh] flex items-center justify-center relative pt-20 pb-16">
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-black/5"></div>
+        <div class="text-center px-6 relative z-10 max-w-4xl mx-auto">
+            <div
+                class="inline-flex items-center gap-2 bg-white/25 backdrop-blur-sm px-5 py-2.5 rounded-full text-white text-sm mb-6 shadow-lg border border-white/20">
+                <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg"></span>
+                <span class="font-semibold">4 Assureurs • Comparaison en temps réel</span>
+            </div>
+            <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-4 leading-tight">
+                Comparateur d'Assurance Auto
+            </h1>
+            <p class="text-lg md:text-xl text-white/95 font-medium">AXA • MAMDA-MCMA • Sanlam • RMA Assurance</p>
+            <p class="text-sm text-white/80 mt-3">Trouvez la meilleure offre en quelques clics</p>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="max-w-4xl mx-auto px-6 -mt-16 relative z-20 mb-12">
+        <div class="glass rounded-2xl shadow-2xl p-10 border border-slate-200">
+            <!-- Form Indicators -->
+            <div class="flex items-center justify-between mb-10 pb-6 border-b border-slate-200">
+                <h2 class="text-2xl md:text-3xl font-bold text-slate-900">Demande de Devis Assurance Auto</h2>
+                <div class="flex gap-3 text-sm">
+                    <span id="step-indicator-1"
+                        class="px-5 py-2.5 rounded-full bg-blue-600 text-white font-semibold indicator-active shadow-sm">1.
+                        Véhicule</span>
+                    <span id="step-indicator-2"
+                        class="px-5 py-2.5 rounded-full bg-slate-200 text-slate-600 font-semibold indicator-inactive">2.
+                        Infos Perso</span>
+                </div>
+            </div>
+
+            <form id="insuranceForm" class="space-y-6">
+                <!-- Step 1: Vehicle Information -->
+                <div id="form-step-1" class="form-step active space-y-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Informations du Véhicule</h3>
+
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <!-- Marque -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Marque <span
+                                    class="text-red-500">*</span></label>
+                            <input type="text" id="marque" name="marque" placeholder="Ex: Renault" required
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+
+                        <!-- Modèle -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Modèle <span
+                                    class="text-red-500">*</span></label>
+                            <input type="text" id="modele" name="modele" placeholder="Ex: Clio" required
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+
+                        <!-- Carburant -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Carburant <span
+                                    class="text-red-500">*</span></label>
+                            <select id="carburant" name="carburant" required
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                                <option value="">Sélectionnez</option>
+                                <option value="essence">Essence</option>
+                                <option value="diesel">Diesel</option>
+                                <option value="hybrid-e">Hybrid Essence</option>
+                                <option value="hybrid-d">Hybrid Diesel</option>
+                                <option value="electrique">Électrique</option>
+                            </select>
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+
+                        <!-- Nombre de places -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Nombre de places <span
+                                    class="text-red-500">*</span></label>
+                            <input type="number" id="nombre-places" name="nombre_places" placeholder="Ex: 5" min="2"
+                                max="9" required
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+
+                        <!-- Puissance fiscale -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Puissance Fiscale <span
+                                    class="text-red-500">*</span></label>
+                            <input type="number" id="puissance-fiscale" name="puissance_fiscale"
+                                placeholder="Ex: 6, 8, 11..." min="2" required
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+
+                        <!-- Date de mise en circulation -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Date de mise en circulation
+                                <span class="text-red-500">*</span></label>
+                            <input type="date" id="date-mec" name="date_mec" required
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+
+                        <!-- Type de plaque -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Type de plaque <span
+                                    class="text-red-500">*</span></label>
+                            <select id="type-plaque" name="type_plaque" required
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                                <option value="">Sélectionnez</option>
+                                <option value="standard">Plaque standard</option>
+                                <option value="ww">WW</option>
+                            </select>
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+
+                        <!-- Immatriculation -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Immatriculation <span
+                                    class="text-red-500">*</span></label>
+                            <input type="text" id="immatriculation" name="immatriculation" placeholder=""
+                                required
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+
+                        <!-- Valeur à neuf -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Valeur à neuf (MAD) <span
+                                    class="text-red-500">*</span></label>
+                            <input type="number" id="valeur-neuf" name="valeur_neuf" placeholder="Ex: 200000" min="0"
+                                step="1000" required
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+
+                        <!-- Valeur actuelle -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Valeur actuelle (MAD) <span
+                                    class="text-red-500">*</span></label>
+                            <input type="number" id="valeur-actuelle" name="valeur_actuelle"
+                                placeholder="Entrez la valeur actuelle du véhicule" min="0" step="1000" required
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                            <small class="text-slate-500 text-xs block mt-2">Veuillez entrer la valeur actuelle de votre véhicule</small>
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+                    </div>
+
+                    <!-- Navigation buttons -->
+                    <div class="flex justify-end pt-6 border-t border-gray-200">
+                        <button type="button" id="next-step-btn"
+                            class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl flex items-center gap-2">
+                            Suivant <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7">
+                                </path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Personal Information -->
+                <div id="form-step-2" class="form-step hidden space-y-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Informations Personnelles</h3>
+
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <!-- Nom -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Nom <span
+                                    class="text-red-500">*</span></label>
+                            <input type="text" id="nom" name="nom" placeholder="Ex: Alami" required
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+
+                        <!-- Prénom -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Prénom <span
+                                    class="text-red-500">*</span></label>
+                            <input type="text" id="prenom" name="prenom" placeholder="Ex: Ahmed" required
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+
+                        <!-- Téléphone -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Téléphone <span
+                                    class="text-red-500">*</span></label>
+                            <input type="tel" id="telephone" name="telephone" placeholder="06 61 65 20 22" required
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+
+                        <!-- Email -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Email <span
+                                    class="text-red-500">*</span></label>
+                            <input type="email" id="email" name="email" placeholder="nom@exemple.com" required
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+
+                        <!-- Date de naissance -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Date de naissance <span
+                                    class="text-red-500">*</span></label>
+                            <input type="date" id="date-naissance" name="date_naissance" required
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+
+                        <!-- Date de permis -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Date de délivrance du permis
+                                <span class="text-red-500">*</span></label>
+                            <input type="date" id="date-permis" name="date_permis" required
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+
+                        <!-- Ville -->
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Ville <span
+                                    class="text-red-500">*</span></label>
+                            <select id="ville" name="ville" required
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                                <option value="">Sélectionnez votre ville</option>
+                                <option value="AGADIR" data-agent="50201">AGADIR</option>
+                                <option value="AGOURAI" data-agent="68102">AGOURAI</option>
+                                <option value="AIN AICHA" data-agent="68103">AIN AICHA</option>
+                                <option value="AIN TAOUJDATE" data-agent="60610">AIN TAOUJDATE</option>
+                                <option value="AIT BAHA" data-agent="58009">AIT BAHA</option>
+                                <option value="AIT MELLOUL" data-agent="50228">AIT MELLOUL</option>
+                                <option value="AKLIM" data-agent="60593">AKLIM</option>
+                                <option value="AKNOUL" data-agent="60518">AKNOUL</option>
+                                <option value="AL HAOUZ" data-agent="68108">AL HAOUZ</option>
+                                <option value="AL HOCEIMA" data-agent="30484">AL HOCEIMA</option>
+                                <option value="ALNIF" data-agent="58049">ALNIF</option>
+                                <option value="AOULOUZ" data-agent="58042">AOULOUZ</option>
+                                <option value="ASILAH" data-agent="38051">ASILAH</option>
+                                <option value="AZEMMOUR" data-agent="48075">AZEMMOUR</option>
+                                <option value="AZILAL" data-agent="40631">AZILAL</option>
+                                <option value="AZROU" data-agent="58045">AZROU</option>
+                                <option value="BEL KSIRI" data-agent="28061">BEL KSIRI</option>
+                                <option value="BELFAA" data-agent="58012">BELFAA</option>
+                                <option value="BEN AHMED" data-agent="40338">BEN AHMED</option>
+                                <option value="BENGUERIR" data-agent="40220">BENGUERIR</option>
+                                <option value="BENI MELLAL" data-agent="40209">BENI MELLAL</option>
+                                <option value="BENSLIMANE" data-agent="20460">BENSLIMANE</option>
+                                <option value="BERKANE" data-agent="60466">BERKANE</option>
+                                <option value="BERRECHID" data-agent="18063">BERRECHID</option>
+                                <option value="BIOUGRA" data-agent="50623">BIOUGRA</option>
+                                <option value="BIR JDID" data-agent="12100">BIR JDID</option>
+                                <option value="BOUDERBALA" data-agent="68113">BOUDERBALA</option>
+                                <option value="BOUFEKRANE" data-agent="60519">BOUFEKRANE</option>
+                                <option value="BOUIZAKARNE" data-agent="58044">BOUIZAKARNE</option>
+                                <option value="BOUJAAD" data-agent="40676">BOUJAAD</option>
+                                <option value="BOUJDOUR" data-agent="58047">BOUJDOUR</option>
+                                <option value="BOUMIA" data-agent="68114">BOUMIA</option>
+                                <option value="BOUZNIKA" data-agent="20365">BOUZNIKA</option>
+                                <option value="CASABLANCA" data-agent="1101">CASABLANCA</option>
+                                <option value="CHEFCHAOUEN" data-agent="30352">CHEFCHAOUEN</option>
+                                <option value="CHICHAOUA" data-agent="48093">CHICHAOUA</option>
+                                <option value="CHTOUKA" data-agent="18062">CHTOUKA</option>
+                                <option value="DAKHLA" data-agent="50226">DAKHLA</option>
+                                <option value="DCHEIRA" data-agent="50625">DCHEIRA</option>
+                                <option value="DEMNATE" data-agent="60325">DEMNATE</option>
+                                <option value="DEROUA" data-agent="18065">DEROUA</option>
+                                <option value="DEROUA OULAD ZIANE" data-agent="12265">DEROUA OULAD ZIANE</option>
+                                <option value="DRIOUCH" data-agent="60600">DRIOUCH</option>
+                                <option value="EL BOROUJ" data-agent="68033">EL BOROUJ</option>
+                                <option value="EL HAJEB" data-agent="68029">EL HAJEB</option>
+                                <option value="EL JADIDA" data-agent="40218">EL JADIDA</option>
+                                <option value="EL KELAA DES SRAGHNA" data-agent="40213">EL KELAA DES SRAGHNA</option>
+                                <option value="EL KSIBA" data-agent="68095">EL KSIBA</option>
+                                <option value="ERFOUD" data-agent="50579">ERFOUD</option>
+                                <option value="ERRACHIDIA" data-agent="50208">ERRACHIDIA</option>
+                                <option value="ES SEMARA" data-agent="50519">ES SEMARA</option>
+                                <option value="ESSAOUIRA" data-agent="40600">ESSAOUIRA</option>
+                                <option value="FES" data-agent="12316">FÈS</option>
+                                <option value="FKIH BEN SALAH" data-agent="40350">FKIH BEN SALAH</option>
+                                <option value="FNIDEQ" data-agent="30214">FNIDEQ</option>
+                                <option value="FOUM JEMAA" data-agent="48091">FOUM JEMAA</option>
+                                <option value="GOULMIMA" data-agent="50639">GOULMIMA</option>
+                                <option value="GUELMIM" data-agent="50632">GUELMIM</option>
+                                <option value="GUERCIF" data-agent="60510">GUERCIF</option>
+                                <option value="HAD BRADIA" data-agent="48089">HAD BRADIA</option>
+                                <option value="HAD SOUALEM" data-agent="18057">HAD SOUALEM</option>
+                                <option value="IMMOUZZER KANDAR" data-agent="68089">IMMOUZZER KANDAR</option>
+                                <option value="IMN TANOUTE" data-agent="68094">IMN TANOUTE</option>
+                                <option value="IMZOUREN" data-agent="30468">IMZOUREN</option>
+                                <option value="INEZGANE" data-agent="50211">INEZGANE</option>
+                                <option value="JEBHA" data-agent="38049">JEBHA</option>
+                                <option value="JERADA" data-agent="68100">JERADA</option>
+                                <option value="JORF EL MELHA" data-agent="30221">JORF EL MELHA</option>
+                                <option value="KHEMIS ZEMAMRA" data-agent="28013">KHEMIS ZEMAMRA</option>
+                                <option value="KHEMISSET" data-agent="20224">KHÉMISSET</option>
+                                <option value="KHENIFRA" data-agent="40665">KHENIFRA</option>
+                                <option value="KHOURIBGA" data-agent="40212">KHOURIBGA</option>
+                                <option value="KSAR EL KEBIR" data-agent="30224">KSAR EL KEBIR</option>
+                                <option value="KSAR SGHIR" data-agent="38050">KSAR SGHIR</option>
+                                <option value="LAAYOUNE" data-agent="58040">LAAYOUNE</option>
+                                <option value="LARACHE" data-agent="30215">LARACHE</option>
+                                <option value="MARRAKECH" data-agent="30454">MARRAKECH</option>
+                                <option value="MARTIL" data-agent="30496">MARTIL</option>
+                                <option value="MASSA" data-agent="58037">MASSA</option>
+                                <option value="MEKNES" data-agent="60553">MEKNES</option>
+                                <option value="MIDELT" data-agent="60327">MIDELT</option>
+                                <option value="MISSOUR" data-agent="60225">MISSOUR</option>
+                                <option value="MRIRT" data-agent="60538">MRIRT</option>
+                                <option value="NADOR" data-agent="60214">NADOR</option>
+                                <option value="OUARZAZATE" data-agent="50631">OUARZAZATE</option>
+                                <option value="OUJDA" data-agent="60217">OUJDA</option>
+                                <option value="RABAT" data-agent="20203">RABAT</option>
+                                <option value="SAFI" data-agent="40205">SAFI</option>
+                                <option value="SALE" data-agent="28055">SALE</option>
+                                <option value="SETTAT" data-agent="18066">SETTAT</option>
+                                <option value="SIDI BENNOUR" data-agent="40232">SIDI BENNOUR</option>
+                                <option value="SIDI KACEM" data-agent="28064">SIDI KACEM</option>
+                                <option value="SIDI SLIMANE" data-agent="28011">SIDI SLIMANE</option>
+                                <option value="SIDI SMAIL" data-agent="18058">SIDI SMAIL</option>
+                                <option value="SIDI YAHIA DU GHARB" data-agent="30473">SIDI YAHIA DU GHARB</option>
+                                <option value="SKHIRATE" data-agent="20600">SKHIRATE</option>
+                                <option value="SOUK ARBAA DU RHARB" data-agent="40239">SOUK ARBAA DU RHARB</option>
+                                <option value="TAFRAOUTE" data-agent="68087">TAFRAOUTE</option>
+                                <option value="TAMESNA" data-agent="28063">TAMESNA</option>
+                                <option value="TAN TAN" data-agent="50224">TAN TAN</option>
+                                <option value="TANGER" data-agent="30208">TANGER</option>
+                                <option value="TAOUNATE" data-agent="60241">TAOUNATE</option>
+                                <option value="TAOURIRTE" data-agent="68099">TAOURIRTE</option>
+                                <option value="TAROUDANT" data-agent="50633">TAROUDANT</option>
+                                <option value="TATA" data-agent="50570">TATA</option>
+                                <option value="TAZA" data-agent="60243">TAZA</option>
+                                <option value="TEMARA" data-agent="20627">TEMARA</option>
+                                <option value="TEMSIA" data-agent="58048">TEMSIA</option>
+                                <option value="TETOUAN" data-agent="30471">TETOUAN</option>
+                                <option value="TETOUANE" data-agent="30497">TETOUANE</option>
+                                <option value="TIFLET" data-agent="60401">TIFLET</option>
+                                <option value="TINEJDADE" data-agent="30465">TINEJDADE</option>
+                                <option value="TINERHIR" data-agent="20598">TINERHIR</option>
+                                <option value="TISSA" data-agent="38033">TISSA</option>
+                                <option value="TIT MELLIL" data-agent="12245">TIT MELLIL</option>
+                                <option value="TIZNIT" data-agent="50225">TIZNIT</option>
+                                <option value="TLAT LOULAD" data-agent="48090">TLAT LOULAD</option>
+                                <option value="VILLAGE AMIZMIZ" data-agent="48105">VILLAGE AMIZMIZ</option>
+                                <option value="VILLAGE CHEMAIA" data-agent="50622">VILLAGE CHEMAIA</option>
+                                <option value="VILLAGE JEMAA SEHAIM" data-agent="48092">VILLAGE JEMAA SEHAIM</option>
+                                <option value="VILLAGE TNINE OURIKA" data-agent="48086">VILLAGE TNINE OURIKA</option>
+                                <option value="YOUSSOUFIA" data-agent="40622">YOUSSOUFIA</option>
+                                <option value="ZAGORA" data-agent="50638">ZAGORA</option>
+                                <option value="MOHAMMADIA" data-agent="12195">MOHAMMADIA</option>
+                                <option value="KENITRA" data-agent="28046">KENITRA</option>
+
+                            </select>
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+
+                        <!-- Assureur actuel (optional) -->
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Assureur actuel
+                                (optionnel)</label>
+                            <input type="text" id="assureur-actuel" name="assureur_actuel"
+                                placeholder="Ex: AXA, RMA, Sanlam..."
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+
+                        <!-- Consent -->
+                        <div class="md:col-span-2">
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                <input type="checkbox" id="consent" name="consent" required
+                                    class="mt-1 w-4 h-4 accent-indigo-600">
+                                <span class="text-sm text-gray-700">J'accepte d'être contacté(e) par les courtiers
+                                    agrées, partenaires de MesAssurances.ma, concernant ma demande de devis/estimation
+                                    assurance auto. <span class="text-red-500">*</span></span>
+                            </label>
+                            <p class="error-message text-red-500 text-sm mt-1"></p>
+                        </div>
+                    </div>
+
+                    <!-- Scraper Selection -->
+                    <div class="mt-6 p-6 bg-blue-50 border-2 border-blue-200 rounded-xl">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                            </svg>
+                            Sélectionnez les assureurs à comparer
+                        </h4>
+                        <p class="text-sm text-gray-600 mb-4">Choisissez au moins un assureur pour obtenir des devis</p>
+
+                        <div id="scraperSelectionContainer" class="grid md:grid-cols-2 gap-3">
+                            <div class="text-center py-4 text-gray-500">
+                                Chargement des assureurs disponibles...
+                            </div>
+                        </div>
+                        <p id="scraperSelectionError" class="error-message text-red-500 text-sm mt-2 hidden">Veuillez sélectionner au moins un assureur</p>
+                    </div>
+
+                    <!-- Navigation buttons -->
+                    <div class="flex justify-between pt-6 border-t border-gray-200">
+                        <button type="button" id="prev-step-btn"
+                            class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-xl flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 19l-7-7 7-7"></path>
+                            </svg> Retour
+                        </button>
+                        <div class="flex gap-3">
+                            <button type="submit" id="submitBtn"
+                                class="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl flex items-center gap-2">
+                                <svg id="searchIcon" class="w-5 h-5" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                <svg id="loadingIcon" class="w-5 h-5 animate-spin hidden" fill="none"
+                                    viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                        stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                                <span id="btnText">Comparer les Prix</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Error -->
+    <div id="errorAlert" class="hidden max-w-4xl mx-auto px-4 mb-6">
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl">
+            <p id="errorText" class="text-red-700 font-medium text-sm"></p>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div id="resultsSection" class="hidden pb-16">
+        <div class="bg-gradient-to-r from-emerald-500 to-teal-600 py-5 mb-6">
+            <div class="max-w-7xl mx-auto px-4">
+                <div class="flex flex-wrap justify-center items-center gap-6 text-white">
+                    <div class="text-center">
+                        <p class="text-emerald-100 text-xs uppercase">Plans</p>
+                        <p id="totalPlans" class="text-2xl font-bold">0</p>
+                    </div>
+                    <div class="text-center border-l border-white/30 pl-6">
+                        <p class="text-emerald-100 text-xs uppercase">Meilleur annuel</p>
+                        <p id="bestPriceAnnual" class="text-2xl font-bold">--</p>
+                    </div>
+                    <div class="text-center border-l border-white/30 pl-6">
+                        <p class="text-emerald-100 text-xs uppercase">Meilleur 6 mois</p>
+                        <p id="bestPriceSemi" class="text-2xl font-bold">--</p>
+                    </div>
+                    <div class="text-center border-l border-white/30 pl-6">
+                        <p class="text-emerald-100 text-xs uppercase">Temps</p>
+                        <p id="fetchTime" class="text-2xl font-bold">0s</p>
+                    </div>
+                    <div class="text-center border-l border-white/30 pl-6">
+                        <button onclick="generateComparisonPDF()"
+                            class="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg font-semibold transition-all flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Générer PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="max-w-7xl mx-auto px-4 mb-6">
+            <div class="flex justify-center">
+                <div class="duration-toggle">
+                    <button type="button" id="globalAnnualBtn" onclick="setGlobalDuration('annual')"
+                        class="duration-btn active">12 Mois (Annuel)</button>
+                    <button type="button" id="globalSemiBtn" onclick="setGlobalDuration('semi_annual')"
+                        class="duration-btn">6 Mois</button>
+                </div>
+            </div>
+        </div>
+        <div class="max-w-7xl mx-auto px-4">
+            <div id="providersContainer" class="space-y-8"></div>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loadingSkeleton" class="hidden max-w-7xl mx-auto px-4 py-8">
+        <div class="space-y-8">
+            <div class="h-8 w-48 shimmer rounded-lg"></div>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white rounded-xl p-5 shadow space-y-3">
+                    <div class="h-5 w-24 shimmer rounded"></div>
+                    <div class="h-10 w-full shimmer rounded"></div>
+                    <div class="h-3 w-full shimmer rounded"></div>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow space-y-3">
+                    <div class="h-5 w-24 shimmer rounded"></div>
+                    <div class="h-10 w-full shimmer rounded"></div>
+                    <div class="h-3 w-full shimmer rounded"></div>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow space-y-3">
+                    <div class="h-5 w-24 shimmer rounded"></div>
+                    <div class="h-10 w-full shimmer rounded"></div>
+                    <div class="h-3 w-full shimmer rounded"></div>
+                </div>
+                <div class="bg-white rounded-xl p-5 shadow space-y-3">
+                    <div class="h-5 w-24 shimmer rounded"></div>
+                    <div class="h-10 w-full shimmer rounded"></div>
+                    <div class="h-3 w-full shimmer rounded"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-gray-900 text-gray-400 py-6 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-sm">Comparateur d'Assurance Auto Maroc © 2026</p>
+        </div>
+    </footer>
+
+    <!-- AXA Assistance Options Modal -->
+    <div id="axaAssistanceModal" class="fixed inset-0 z-50 hidden">
+        <div class="modal-overlay absolute inset-0" onclick="closeAxaAssistanceModal()"></div>
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="modal-content bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-y-auto relative z-10">
+                <!-- Modal Header -->
+                <div class="bg-gradient-to-r from-blue-900 to-blue-800 px-6 py-4 rounded-t-2xl">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="text-xl font-bold text-white">Options d'Assistance AXA</h3>
+                            <p id="axaModalPlanName" class="text-blue-200 text-sm">Pack sélectionné</p>
+                        </div>
+                        <button onclick="closeAxaAssistanceModal()" class="text-white/80 hover:text-white">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Assistance Options Grid -->
+                <div class="p-6">
+                    <p class="text-gray-600 mb-4 text-sm">Choisissez votre niveau d'assistance routière :</p>
+                    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4" id="assistanceOptionsGrid">
+                        <!-- Access -->
+                        <div class="assistance-option-card bg-white rounded-xl shadow-md p-4 cursor-pointer" onclick="selectAssistanceOption('access', this)">
+                            <div class="text-center mb-3">
+                                <h4 class="text-lg font-bold text-blue-900">Access</h4>
+                                <p class="text-xs text-gray-500">A partir de</p>
+                                <p class="text-2xl font-extrabold text-green-600">0.00 <span class="text-sm">DH TTC</span></p>
+                            </div>
+                            <div class="space-y-2 text-xs">
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Alerte de la protection civile au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Aide à l'établissement du constat au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Transport en ambulance des personnes blessées au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Remorquage au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Frais de gardiennage au maroc jusqu'à 30 jours</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Essentielle -->
+                        <div class="assistance-option-card bg-white rounded-xl shadow-md p-4 cursor-pointer" onclick="selectAssistanceOption('essentielle', this)">
+                            <div class="text-center mb-3">
+                                <h4 class="text-lg font-bold text-blue-900">Essentielle</h4>
+                                <p class="text-xs text-gray-500">A partir de</p>
+                                <p class="text-2xl font-extrabold text-green-600">143.40 <span class="text-sm">DH TTC</span></p>
+                            </div>
+                            <div class="space-y-2 text-xs">
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Alerte de la protection civile au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Aide à l'établissement du constat au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Transport en ambulance des personnes blessées au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Remorquage au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Frais de gardiennage au maroc jusqu'à 30 jours</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Second transport sanitaire</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Avance pour admission hospitalière au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Véhicule de remplacement au maroc</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Optimum -->
+                        <div class="assistance-option-card bg-white rounded-xl shadow-md p-4 cursor-pointer" onclick="selectAssistanceOption('optimum', this)">
+                            <div class="text-center mb-3">
+                                <h4 class="text-lg font-bold text-blue-900">Optimum</h4>
+                                <p class="text-xs text-gray-500">A partir de</p>
+                                <p class="text-2xl font-extrabold text-green-600">199.53 <span class="text-sm">DH TTC</span></p>
+                            </div>
+                            <div class="space-y-2 text-xs">
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Alerte de la protection civile au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Aide à l'établissement du constat au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Transport en ambulance des personnes blessées au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Remorquage au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Frais de gardiennage au maroc jusqu'à 30 jours</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Second transport sanitaire</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Avance pour admission hospitalière au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Véhicule de remplacement au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Récupération du véhicule par l'assuré ou envoi de chauffeur au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Retour des bénéficiaires au domicile ou continuation du voyage au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Retour au domicile ou continuation du voyage à l'étranger</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Remorquage à l'étranger en cas d'accident ou de panne</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Envoi de pièces détachées au maroc et à l'étranger</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Abandon légal du véhicule à l'étranger</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Premium -->
+                        <div class="assistance-option-card bg-white rounded-xl shadow-md p-4 cursor-pointer border-2 border-amber-400" onclick="selectAssistanceOption('premium', this)">
+                            <div class="absolute -top-2 -right-2 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                Recommandé
+                            </div>
+                            <div class="text-center mb-3">
+                                <div class="flex items-center justify-center gap-2 mb-1">
+                                    <div class="bg-pink-100 p-1 rounded">
+                                        <svg class="w-6 h-6 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                    </div>
+                                </div>
+                                <h4 class="text-lg font-bold text-blue-900">Premium</h4>
+                                <p class="text-xs text-gray-500">A partir de</p>
+                                <p class="text-2xl font-extrabold text-green-600">360.65 <span class="text-sm">DH TTC</span></p>
+                            </div>
+                            <div class="space-y-2 text-xs">
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Alerte de la protection civile au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Aide à l'établissement du constat au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Transport en ambulance des personnes blessées au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Remorquage au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Frais de gardiennage au maroc jusqu'à 30 jours</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Second transport sanitaire</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Avance pour admission hospitalière au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Véhicule de remplacement au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Récupération du véhicule par l'assuré ou envoi de chauffeur au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Retour des bénéficiaires au domicile ou continuation du voyage au maroc</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Retour au domicile ou continuation du voyage à l'étranger</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Remorquage à l'étranger en cas d'accident ou de panne</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Envoi de pièces détachées au maroc et à l'étranger</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Abandon légal du véhicule à l'étranger</span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <span>Véhicule de remplacement à l'étranger</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Confirm Button -->
+                    <div class="mt-6 flex justify-end gap-3">
+                        <button onclick="closeAxaAssistanceModal()" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all">
+                            Annuler
+                        </button>
+                        <button id="confirmAssistanceBtn" onclick="confirmAssistanceSelection()" disabled
+                            class="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                            Confirmer la sélection
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentDuration = 'annual';
+        let resultsData = null;
+        let cheapestPrices = { annual: null, semi_annual: null };
+        let currentStep = 1;
+        let axaSessionData = null;  // Store AXA session data for update requests
+        let mcmaSessionData = null;  // Store MCMA session data for update requests
+        let availableScrapers = [];  // Store available scrapers
+
+        // ============ SCRAPER SELECTION ============
+        async function loadAvailableScrapers() {
+            try {
+                const response = await fetch('/api/scrapers/enabled');
+                const data = await response.json();
+
+                if (data.success && data.scrapers) {
+                    availableScrapers = data.scrapers;
+                    displayScraperCheckboxes(data.scrapers);
+                } else {
+                    console.error('Failed to load scrapers');
+                    document.getElementById('scraperSelectionContainer').innerHTML = '<div class="text-center py-4 text-red-500">Erreur lors du chargement des assureurs</div>';
+                }
+            } catch (error) {
+                console.error('Error loading scrapers:', error);
+                document.getElementById('scraperSelectionContainer').innerHTML = '<div class="text-center py-4 text-red-500">Erreur lors du chargement des assureurs</div>';
+            }
+        }
+
+        function displayScraperCheckboxes(scrapers) {
+            const container = document.getElementById('scraperSelectionContainer');
+
+            if (scrapers.length === 0) {
+                container.innerHTML = '<div class="text-center py-4 text-gray-500">Aucun assureur disponible</div>';
+                return;
+            }
+
+            // Scraper display names
+            const scraperNames = {
+                'axa': 'AXA Assurance',
+                'sanlam': 'Sanlam',
+                'mcma': 'MCMA (MAMDA)',
+                'rma': 'RMA Watanya'
+            };
+
+            const scraperIcons = {
+                'axa': '🏢',
+                'sanlam': '🛡️',
+                'mcma': '🏛️',
+                'rma': '🔰'
+            };
+
+            container.innerHTML = scrapers.map(code => `
+                <label class="flex items-center gap-3 p-4 bg-white border-2 border-gray-200 rounded-lg cursor-pointer hover:border-indigo-500 transition-all">
+                    <input type="checkbox" name="scrapers[]" value="${code}" class="w-5 h-5 accent-indigo-600 scraper-checkbox" checked>
+                    <span class="text-2xl">${scraperIcons[code] || '📊'}</span>
+                    <span class="font-semibold text-gray-800">${scraperNames[code] || code.toUpperCase()}</span>
+                </label>
+            `).join('');
+        }
+
+        function validateScraperSelection() {
+            const checkboxes = document.querySelectorAll('.scraper-checkbox:checked');
+            const errorEl = document.getElementById('scraperSelectionError');
+
+            if (checkboxes.length === 0) {
+                errorEl.classList.remove('hidden');
+                return false;
+            } else {
+                errorEl.classList.add('hidden');
+                return true;
+            }
+        }
+
+        function getSelectedScrapers() {
+            const checkboxes = document.querySelectorAll('.scraper-checkbox:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        // ============ FORM NAVIGATION ============
+        function goToStep(step) {
+            if (step === 2 && !validateStep1()) return;
+
+            // Load scrapers when going to step 2
+            if (step === 2 && availableScrapers.length === 0) {
+                loadAvailableScrapers();
+            }
+
+            document.querySelectorAll('.form-step').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`form-step-${step}`).classList.remove('hidden');
+
+            document.getElementById('step-indicator-1').classList.toggle('bg-indigo-600', step === 1);
+            document.getElementById('step-indicator-1').classList.toggle('bg-gray-200', step !== 1);
+            document.getElementById('step-indicator-1').classList.toggle('text-white', step === 1);
+            document.getElementById('step-indicator-1').classList.toggle('text-gray-600', step !== 1);
+
+            document.getElementById('step-indicator-2').classList.toggle('bg-indigo-600', step === 2);
+            document.getElementById('step-indicator-2').classList.toggle('bg-gray-200', step !== 2);
+            document.getElementById('step-indicator-2').classList.toggle('text-white', step === 2);
+            document.getElementById('step-indicator-2').classList.toggle('text-gray-600', step !== 2);
+
+            currentStep = step;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function validateStep1() {
+            const fields = ['marque', 'modele', 'carburant', 'nombre-places', 'puissance-fiscale', 'date-mec', 'type-plaque', 'immatriculation', 'valeur-neuf', 'valeur-actuelle'];
+            let valid = true;
+
+            fields.forEach(id => {
+                const field = document.getElementById(id);
+                if (!field.value) {
+                    field.closest('div').querySelector('.error-message').textContent = 'Ce champ est obligatoire';
+                    valid = false;
+                } else {
+                    field.closest('div').querySelector('.error-message').textContent = '';
+                }
+            });
+
+            return valid;
+        }
+
+        // ============ AUTO-CALCULATE CURRENT VALUE ============
+        document.getElementById('valeur-neuf').addEventListener('change', () => {
+            const valeurNeuf = parseFloat(document.getElementById('valeur-neuf').value) || 0;
+            const valeurActuelle = Math.round(valeurNeuf * 0.75);
+            document.getElementById('valeur-actuelle').value = valeurActuelle;
+        });
+
+        // ============ STEP NAVIGATION BUTTONS ============
+        document.getElementById('next-step-btn').addEventListener('click', () => goToStep(2));
+        document.getElementById('prev-step-btn').addEventListener('click', () => goToStep(1));
+
+        // ============ FORM SUBMISSION ============
+        document.getElementById('insuranceForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            hideError();
+
+            if (!validateStep1()) return;
+
+            // Validate scraper selection
+            if (!validateScraperSelection()) {
+                showError('Veuillez sélectionner au moins un assureur pour comparer les offres');
+                return;
+            }
+
+            const sel = document.getElementById("ville");
+            const city = sel.value;
+            const agentKey = sel.options[sel.selectedIndex].dataset.agent;
+            // Collect all form data
+            const formData = {
+
+                marque: document.getElementById('marque').value,
+                modele: document.getElementById('modele').value,
+                carburant: document.getElementById('carburant').value,
+                nombre_places: parseInt(document.getElementById('nombre-places').value),
+                puissance_fiscale: parseInt(document.getElementById('puissance-fiscale').value),
+                date_mec: document.getElementById('date-mec').value,
+                type_plaque: document.getElementById('type-plaque').value,
+                immatriculation: document.getElementById('immatriculation').value,
+                valeur_neuf: parseFloat(document.getElementById('valeur-neuf').value),
+                valeur_actuelle: parseFloat(document.getElementById('valeur-actuelle').value),
+                nom: document.getElementById('nom').value,
+                prenom: document.getElementById('prenom').value,
+                telephone: document.getElementById('telephone').value,
+                email: document.getElementById('email').value,
+                date_naissance: document.getElementById('date-naissance').value,
+                date_permis: document.getElementById('date-permis').value,
+                ville: city,
+                agent_key: agentKey,
+                assureur_actuel: document.getElementById('assureur-actuel').value || '',
+                consent: document.getElementById('consent').checked,
+                selected_scrapers: getSelectedScrapers()
+            };
+
+            setLoading(true);
+            document.getElementById('resultsSection').classList.add('hidden');
+
+            try {
+                const r = await fetch('/api/compare', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const d = await r.json();
+                if (!r.ok || (!d.success && d.error)) throw new Error(d.error || 'Erreur');
+                displayResults(d);
+            } catch (err) {
+                showError(err.message || 'Erreur de connexion');
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // ============ RESULTS DISPLAY ============
+        function formatPrice(p) {
+            if (p == null || isNaN(p)) return '--';
+            return new Intl.NumberFormat('fr-MA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(p);
+        }
+
+        function setGlobalDuration(d) {
+            currentDuration = d;
+            document.getElementById('globalAnnualBtn').classList.toggle('active', d === 'annual');
+            document.getElementById('globalSemiBtn').classList.toggle('active', d === 'semi_annual');
+            if (resultsData) displayResults(resultsData);
+        }
+
+        function setLoading(l) {
+            const btn = document.getElementById('submitBtn');
+            document.getElementById('searchIcon').classList.toggle('hidden', l);
+            document.getElementById('loadingIcon').classList.toggle('hidden', !l);
+            document.getElementById('btnText').textContent = l ? 'Recherche...' : 'Comparer les Prix';
+            document.getElementById('loadingSkeleton').classList.toggle('hidden', !l);
+            btn.disabled = l;
+        }
+
+        function showError(m) {
+            document.getElementById('errorText').textContent = m;
+            document.getElementById('errorAlert').classList.remove('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('errorAlert').classList.add('hidden');
+        }
+
+        function getPrice(plan, type = 'prime_total') {
+            const d = currentDuration === 'annual' ? plan.annual : plan.semi_annual;
+            return d ? d[type] : 0;
+        }
+
+        function isBestPrice(plan) {
+            const p = getPrice(plan, 'prime_total');
+            const best = currentDuration === 'annual' ? cheapestPrices.annual : cheapestPrices.semi_annual;
+            return best && Math.abs(p - best) < 0.01;
+        }
+
+        function createGuaranteeHtml(g) {
+            const ic = g.included ? 'text-green-500' : 'text-gray-300';
+            const tc = g.included ? 'text-gray-700' : 'text-gray-400';
+            // Use title for AXA guarantees, name for others
+            const label = g.title || g.name || '';
+            return `
+                <div class="flex items-center gap-2 py-1">
+                    <div class="bg-green-100 rounded-full p-0.5">
+                        <svg class="w-3 h-3 ${ic}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <span class="${tc} text-[11px] font-bold uppercase tracking-wide">${label}</span>
+                </div>`;
+        }
+
+        function createSelectHtml(f, pid) {
+            const defaultVal = f.is_default;
+            const selectedValue = defaultVal || f.options[0]?.value;
+            const opts = f.options.map(o => `<option value="${o.value}" ${o.value === selectedValue ? 'selected' : ''}>${o.value}</option>`).join('');
+            return `<div class="mt-4 pt-4 border-t border-gray-200"><label class="text-sm font-semibold text-gray-700 block mb-2">${f.title}</label><select class="guarantee-select w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" data-plan="${pid}" data-field-name="${f.title}" style="cursor: pointer;">${opts}</select></div>`;
+        }
+
+        function createPlanCard(plan, pcode, idx) {
+            const eligible = plan.is_eligible !== false;
+            const best = isBestPrice(plan) && eligible;
+            const pnet = getPrice(plan, 'prime_net'), taxes = getPrice(plan, 'taxes'), ptot = getPrice(plan, 'prime_total');
+
+            // For MCMA, show prime_net as main price
+            const isMcma = pcode.toLowerCase().includes('mcma');
+            const isAxa = pcode.toLowerCase() === 'axa';
+            const displayPrice = isMcma ? pnet : ptot;
+
+            const gars = (plan.guarantees || []);
+            const sFields = plan.selectable_fields || [];
+
+            const proBadge = plan.is_promoted && eligible ? '<span class="promoted-badge">Recommandé</span>' : '';
+            const bestBadge = best ? '<span class="best-price-badge">⭐ Meilleur Prix</span>' : '';
+
+            const planKey = `${pcode}_${idx}`;
+            plan._key = planKey;
+
+            // Generate guarantees and options HTML based on provider
+            let guaranteesHtml = '';
+            let optionsHtml = '';
+
+            if (isAxa) {
+                // For AXA: Display fixed guarantees as checkmarks, selectable fields as dropdowns
+                guaranteesHtml = gars.map(g => createGuaranteeHtml(g)).join('');
+                optionsHtml = sFields.map((f, i) => createAxaSelectHtml(f, planKey, plan.pack_id)).join('');
+            } else if (isMcma) {
+                // For MCMA: Use MCMA-specific select with API call on change
+                guaranteesHtml = gars.map(g => createGuaranteeHtml(g)).join('');
+                optionsHtml = sFields.map((f, i) => createMcmaSelectHtml(f, planKey, plan.plan_code)).join('');
+            } else {
+                // For other providers
+                guaranteesHtml = gars.map(g => createGuaranteeHtml(g)).join('');
+                optionsHtml = sFields.map((f, i) => createSelectHtml(f, planKey)).join('');
+            }
+
+            return `
+    <div class="bg-white rounded-lg shadow-md card-hover relative overflow-hidden" data-plan-key="${planKey}" data-provider="${pcode}" data-pack-id="${plan.pack_id || ''}">
+        <div class="absolute top-0 left-0 right-0 h-1" style="background:${plan.color}"></div>
+        ${proBadge}${bestBadge}
+        <div class="p-6">
+            <!-- Plan Header -->
+            <div class="mb-4">
+                <h4 class="text-lg font-bold text-gray-800">${plan.plan_name}</h4>
+            </div>
+
+            <!-- Price Box -->
+            <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 mb-4 border-l-4" style="border-color:${plan.color}">
+                <div class="flex items-baseline gap-2 mb-1">
+                    <span class="text-3xl font-extrabold" style="color:${plan.color}" data-price-total>${formatPrice(displayPrice)}</span>
+                    <span class="text-gray-600 font-semibold">DH</span>
+                </div>
+                <p class="text-xs text-gray-500">${currentDuration === 'annual' ? 'Annuel TTC' : '6 mois TTC'}</p>
+            </div>
+
+            <!-- Price Breakdown -->
+            <div class="bg-gray-50 rounded-lg p-3 mb-4 text-xs space-y-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Prime HT:</span>
+                    <span class="font-semibold text-gray-800" data-price-net>${formatPrice(pnet)} DH</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Taxes:</span>
+                    <span class="font-semibold text-gray-800" data-price-taxes>${formatPrice(taxes)} DH</span>
+                </div>
+            </div>
+
+            <!-- Guarantees & Options -->
+            <div class="space-y-3 mb-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                ${guaranteesHtml}
+                ${optionsHtml}
+            </div>
+
+            <!-- Loading Overlay -->
+            <div class="absolute inset-0 bg-white/90 hidden items-center justify-center loading-overlay z-10 backdrop-blur-sm rounded-lg">
+                <div class="text-center">
+                    <div class="inline-block w-6 h-6 border-2 border-gray-300 border-t-indigo-600 rounded-full animate-spin mb-2"></div>
+                    <p class="text-xs font-semibold text-gray-600">Calcul du nouveau tarif...</p>
+                </div>
+            </div>
+
+            ${isAxa ? `
+            <!-- AXA Select Offer Button -->
+            <button onclick="showAxaAssistanceModal('${planKey}', '${plan.plan_name}')"
+                    class="w-full mt-4 py-2 px-4 rounded-lg font-semibold transition-all duration-200 bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Sélectionner l'offre
+            </button>
+            ` : ''}
+        </div>
+    </div>`;
+        }
+
+        // Create AXA-specific select dropdown with styling matching sample_Axa.html
+        function createAxaSelectHtml(field, planKey, packId) {
+            const opts = field.options.map(opt =>
+                `<option value="${opt.value}" ${opt.value === field.default ? 'selected' : ''}>${opt.label}</option>`
+            ).join('');
+
+            return `
+                <div class="mt-2 mb-2">
+                    <div class="flex items-center gap-2 mb-1">
+                        <div class="bg-green-100 rounded-full p-0.5">
+                            <svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <label class="text-[11px] uppercase font-bold text-gray-700 tracking-wide">${field.title}</label>
+                    </div>
+                    <div class="relative pl-6">
+                        <select
+                            class="w-full text-xs border-gray-300 border rounded-md p-2 bg-white text-gray-700 focus:ring-1 focus:ring-indigo-500 focus:border-blue-500 axa-select shadow-sm appearance-none pr-8 cursor-pointer hover:border-indigo-300 transition-colors"
+                            data-plan="${planKey}"
+                            data-pack="${packId}"
+                            data-code="${field.code}"
+                            data-provider="axa"
+                            onchange="handleAxaOptionChange(this)"
+                        >
+                            ${opts}
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Handle AXA option selection change
+        async function handleAxaOptionChange(selectElement) {
+            const planKey = selectElement.dataset.plan;
+            const packId = parseInt(selectElement.dataset.pack);
+            const card = document.querySelector(`[data-plan-key="${planKey}"]`);
+
+            if (!card || !axaSessionData) {
+                console.error('Missing card or AXA session data');
+                return;
+            }
+
+            // Show loading overlay
+            const loadingOverlay = card.querySelector('.loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('hidden');
+                loadingOverlay.classList.add('flex');
+            }
+
+            // Gather all selected values from this card's dropdowns
+            const allSelects = card.querySelectorAll('.axa-select');
+            const userSelections = {};
+            allSelects.forEach(sel => {
+                userSelections[sel.dataset.code] = parseInt(sel.value);
+            });
+
+            try {
+                // Call the backend API to update the quotation
+                const response = await fetch('/api/axa/update-quote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        base_payload: axaSessionData.base_payload,
+                        quotation_id: axaSessionData.id_quotation,
+                        id_lead: axaSessionData.id_lead,
+                        pack_id: packId,
+                        user_selections: userSelections,
+                        duration: currentDuration === 'annual' ? 'annual' : 'semi'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    // Update the plan's pricing in resultsData
+                    const plan = findPlanByKey(planKey);
+                    if (plan) {
+                        // Update based on current duration view
+                        if (currentDuration === 'annual') {
+                            plan.annual = {
+                                prime_net: result.data.primeNetAnnuel || 0,
+                                taxes: result.data.taxesAnnuel || 0,
+                                cnpac: result.data.cnpacAnnuel || 0,
+                                accessoire: result.data.accessoireAnnuel || 0,
+                                prime_total: result.data.primeTotaleAnnuel || 0
+                            };
+                        } else {
+                            plan.semi_annual = {
+                                prime_net: result.data.primeNetComptant || 0,
+                                taxes: result.data.taxesComptant || 0,
+                                cnpac: result.data.cnpacComptant || 0,
+                                accessoire: result.data.accessoireComptant || 0,
+                                prime_total: result.data.primeTotaleComptant || 0
+                            };
+                        }
+
+                        // Update the displayed prices
+                        updatePlanPricing(planKey, plan);
+
+                        // Recalculate cheapest prices
+                        if (resultsData) {
+                            calcCheapest(resultsData.providers);
+                            document.getElementById('bestPriceAnnual').textContent = cheapestPrices.annual ? formatPrice(cheapestPrices.annual) + ' DH' : '-- DH';
+                            document.getElementById('bestPriceSemi').textContent = cheapestPrices.semi_annual ? formatPrice(cheapestPrices.semi_annual) + ' DH' : '-- DH';
+                        }
+                    }
+                } else {
+                    console.error('AXA update failed:', result.error);
+                }
+            } catch (err) {
+                console.error('Error updating AXA quote:', err);
+            } finally {
+                // Hide loading overlay
+                if (loadingOverlay) {
+                    loadingOverlay.classList.add('hidden');
+                    loadingOverlay.classList.remove('flex');
+                }
+            }
+        }
+
+        // Create MCMA-specific select dropdown
+        function createMcmaSelectHtml(field, planKey, packName) {
+            const opts = field.options.map(opt =>
+                `<option value="${opt.value}" ${opt.value === field.default ? 'selected' : ''}>${opt.label}</option>`
+            ).join('');
+
+            return `
+                <div class="mt-2 mb-2">
+                    <div class="flex items-center gap-2 mb-1">
+                        <div class="bg-green-100 rounded-full p-0.5">
+                            <svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <label class="text-[11px] uppercase font-bold text-gray-700 tracking-wide">${field.title}</label>
+                    </div>
+                    <div class="relative pl-6">
+                        <select
+                            class="w-full text-xs border-gray-300 border rounded-md p-2 bg-white text-gray-700 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 mcma-select shadow-sm appearance-none pr-8 cursor-pointer hover:border-emerald-300 transition-colors"
+                            data-plan="${planKey}"
+                            data-pack="${packName}"
+                            data-code="${field.code}"
+                            data-provider="mcma"
+                            onchange="handleMcmaOptionChange(this)"
+                        >
+                            ${opts}
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Handle MCMA option selection change
+        async function handleMcmaOptionChange(selectElement) {
+            const planKey = selectElement.dataset.plan;
+            const packName = selectElement.dataset.pack;
+            const card = document.querySelector(`[data-plan-key="${planKey}"]`);
+
+            if (!card || !mcmaSessionData) {
+                console.error('Missing card or MCMA session data');
+                return;
+            }
+
+            // Show loading overlay
+            const loadingOverlay = card.querySelector('.loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('hidden');
+                loadingOverlay.classList.add('flex');
+            }
+
+            // Gather all selected values from this card's dropdowns
+            const allSelects = card.querySelectorAll('.mcma-select');
+            let brokenGlassValue = 7000;
+            let secondOptionValue = packName === 'optimale' ? 20000 : 5;
+
+            allSelects.forEach(sel => {
+                const code = sel.dataset.code;
+                const value = parseInt(sel.value);
+                if (code === 'brokenGlassValue') {
+                    brokenGlassValue = value;
+                } else if (code === 'damageAndCollision' || code === 'franchise') {
+                    secondOptionValue = value;
+                }
+            });
+
+            try {
+                // Call the backend API to update the quotation
+                const response = await fetch('/api/mcma/update-quote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subscription_id: mcmaSessionData.subscription_id,
+                        token: mcmaSessionData.token,
+                        pack_name: packName,
+                        broken_glass_value: brokenGlassValue,
+                        second_option_value: secondOptionValue
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Update the plan's pricing in resultsData
+                    const plan = findPlanByKey(planKey);
+                    if (plan) {
+                        // Update pricing
+                        plan.annual = {
+                            prime_net: result.annual.prime_net || 0,
+                            taxes: result.annual.taxes || 0,
+                            prime_total: result.annual.prime_total || 0
+                        };
+                        plan.semi_annual = {
+                            prime_net: result.semi_annual.prime_net || 0,
+                            taxes: result.semi_annual.taxes || 0,
+                            prime_total: result.semi_annual.prime_total || 0
+                        };
+
+                        // Update the displayed prices
+                        updatePlanPricing(planKey, plan);
+
+                        // Recalculate cheapest prices
+                        if (resultsData) {
+                            calcCheapest(resultsData.providers);
+                            document.getElementById('bestPriceAnnual').textContent = cheapestPrices.annual ? formatPrice(cheapestPrices.annual) + ' DH' : '-- DH';
+                            document.getElementById('bestPriceSemi').textContent = cheapestPrices.semi_annual ? formatPrice(cheapestPrices.semi_annual) + ' DH' : '-- DH';
+                        }
+                    }
+                } else {
+                    console.error('MCMA update failed:', result.error);
+                }
+            } catch (err) {
+                console.error('Error updating MCMA quote:', err);
+            } finally {
+                // Hide loading overlay
+                if (loadingOverlay) {
+                    loadingOverlay.classList.add('hidden');
+                    loadingOverlay.classList.remove('flex');
+                }
+            }
+        }
+
+        function createProviderSection(p) {
+            const styles = {
+                'axa': { g: 'from-blue-900 to-blue-800', logo: '🛡️' },
+                'mcma': { g: 'from-emerald-600 to-teal-600', logo: '🔒' },
+                'rma': { g: 'from-indigo-900 to-blue-900', logo: '💼' },
+                'sanlam': { g: 'from-blue-700 to-blue-600', logo: '🏢' }
+            };
+            const s = styles[p.code] || { g: 'from-gray-600 to-gray-800', logo: '🏛️' };
+
+            const errHtml = p.error ? `<div class="bg-red-50 border-l-4 border-red-500 rounded-r-lg p-4 mb-4"><p class="text-red-700 font-medium">⚠️ ${p.error}</p></div>` : '';
+
+            const sorted = [...p.plans].sort((a, b) => (getPrice(a) || Infinity) - (getPrice(b) || Infinity));
+            const plansHtml = sorted.length > 0
+                ? sorted.map((pl, i) => createPlanCard(pl, p.code, i)).join('')
+                : '<div class="col-span-full bg-gray-50 rounded-lg p-8 text-center text-gray-500 font-medium">Aucune offre disponible</div>';
+
+            return `
+    <section class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <!-- Provider Header -->
+        <div class="bg-gradient-to-r ${s.g} px-6 py-5">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <img src="${p.logo}" alt="${p.name}" class="h-12 w-auto object-contain" onerror="this.style.display='none'">
+                    <div>
+                        <h3 class="text-xl font-bold text-white">${p.name}</h3>
+                        <p class="text-white/80 text-sm">${p.plan_count} offre${p.plan_count > 1 ? 's' : ''} • ${p.fetch_time.toFixed(1)}s</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Plans Grid -->
+        <div class="p-6">
+            ${errHtml}
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                ${plansHtml}
+            </div>
+        </div>
+    </section>`;
+        }
+
+        function calcCheapest(providers) {
+            let mA = Infinity, mS = Infinity;
+            providers.forEach(p => p.plans.forEach(pl => {
+                if (pl.is_eligible !== false) {
+                    const a = pl.annual?.prime_total || Infinity, s = pl.semi_annual?.prime_total || Infinity;
+                    if (a < mA) mA = a;
+                    if (s < mS) mS = s;
+                }
+            }));
+            cheapestPrices = { annual: mA < Infinity ? mA : null, semi_annual: mS < Infinity ? mS : null };
+        }
+
+        function displayResults(data) {
+            resultsData = data;
+            calcCheapest(data.providers);
+
+            // Store AXA session data for update requests
+            if (data.axa_session_data) {
+                axaSessionData = data.axa_session_data;
+            }
+
+            // Store MCMA session data for update requests
+            if (data.mcma_session_data) {
+                mcmaSessionData = data.mcma_session_data;
+            }
+
+            document.getElementById('totalPlans').textContent = data.summary.total_plans;
+            document.getElementById('bestPriceAnnual').textContent = cheapestPrices.annual ? formatPrice(cheapestPrices.annual) + ' DH' : '-- DH';
+            document.getElementById('bestPriceSemi').textContent = cheapestPrices.semi_annual ? formatPrice(cheapestPrices.semi_annual) + ' DH' : '-- DH';
+            document.getElementById('fetchTime').textContent = data.summary.total_fetch_time + 's';
+
+            const sorted = [...data.providers].sort((a, b) => {
+                const gm = p => { const ps = p.plans.filter(x => x.is_eligible !== false).map(x => currentDuration === 'annual' ? x.annual?.prime_total : x.semi_annual?.prime_total).filter(x => x != null); return ps.length ? Math.min(...ps) : Infinity; };
+                return gm(a) - gm(b);
+            });
+
+            document.getElementById('providersContainer').innerHTML = sorted.map(p => createProviderSection(p)).join('');
+            document.getElementById('resultsSection').classList.remove('hidden');
+            setTimeout(() => document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' }), 100);
+        }
+
+        // Store plan data for option selection tracking
+        const planOptionSelections = {};
+
+        document.addEventListener('change', e => {
+            if (e.target.classList.contains('guarantee-select')) {
+                const fieldName = e.target.dataset.fieldName;
+                const selectedValue = parseFloat(e.target.value);
+                const planKey = `${e.target.dataset.plan}`;
+
+                // Find the plan in results
+                const plan = findPlanByKey(planKey);
+                if (!plan) return;
+
+                // Get all option combinations from extra_info
+                const optionCombinations = plan.extra_info?.option_combinations || [];
+                
+                // Get all selected values from all dropdowns for this plan
+                const selects = document.querySelectorAll(`select[data-plan="${planKey}"]`);
+                const selectedValues = {};
+                
+                selects.forEach(select => {
+                    const fieldName = select.dataset.fieldName;
+                    const selectedVal = parseFloat(select.value);
+                    selectedValues[fieldName] = selectedVal;
+                });
+
+                // Find matching combination in optionCombinations
+                let matchingCombo = null;
+                
+                for (const combo of optionCombinations) {
+                    let isMatch = true;
+                    
+                    // Check all selected fields match this combination
+                    for (const field of plan.selectable_fields || []) {
+                        const fieldTitle = field.title;
+                        const selectedVal = selectedValues[fieldTitle];
+                        
+                        if (fieldTitle === "Bris de Glaces" && combo.brokenGlassValue !== selectedVal) {
+                            isMatch = false;
+                            break;
+                        }
+                        if (fieldTitle === "Dommages-Collision" && combo.damageAndCollision !== selectedVal) {
+                            isMatch = false;
+                            break;
+                        }
+                        if (fieldTitle === "Franchise" && combo.franchise !== selectedVal) {
+                            isMatch = false;
+                            break;
+                        }
+                    }
+                    
+                    if (isMatch) {
+                        matchingCombo = combo;
+                        break;
+                    }
+                }
+
+                // If we found a matching combination, update the pricing
+                if (matchingCombo) {
+                    const annualPrice = matchingCombo.annualPrice || 0;
+                    const semiAnnualPrice = matchingCombo.semiAnnualPrice || 0;
+                    const annualTaxes = annualPrice * 0.165;
+                    const semiAnnualTaxes = semiAnnualPrice * 0.165;
+
+                    // Update plan pricing
+                    plan.annual = {
+                        prime_net: annualPrice,
+                        taxes: annualTaxes,
+                        prime_total: annualPrice + annualTaxes
+                    };
+                    plan.semi_annual = {
+                        prime_net: semiAnnualPrice,
+                        taxes: semiAnnualTaxes,
+                        prime_total: semiAnnualPrice + semiAnnualTaxes
+                    };
+
+                    // Update the display
+                    updatePlanPricing(planKey, plan);
+
+                    // Recalculate cheapest prices
+                    if (resultsData) {
+                        calcCheapest(resultsData.providers);
+                        // Refresh summary
+                        document.getElementById('bestPriceAnnual').textContent = cheapestPrices.annual ? formatPrice(cheapestPrices.annual) + ' DH' : '-- DH';
+                        document.getElementById('bestPriceSemi').textContent = cheapestPrices.semi_annual ? formatPrice(cheapestPrices.semi_annual) + ' DH' : '-- DH';
+                    }
+                }
+            }
+        });
+
+        function findPlanByKey(planKey) {
+            if (!resultsData) return null;
+            for (const provider of resultsData.providers) {
+                for (const plan of provider.plans) {
+                    if (plan._key === planKey) return plan;
+                }
+            }
+            return null;
+        }
+
+        function updatePlanPricing(planKey, pricing) {
+            const cardEl = document.querySelector(`[data-plan-key="${planKey}"]`);
+            if (!cardEl) return;
+
+            const duration = currentDuration === 'annual' ? pricing.annual : pricing.semi_annual;
+            if (!duration) return;
+
+            // Check if it's MCMA - show prime_net as main price for MCMA, prime_total for others
+            const isMcma = planKey.toLowerCase().includes('mcma');
+            const mainPrice = isMcma ? duration.prime_net : duration.prime_total;
+
+            // Update price display with animation
+            const priceEl = cardEl.querySelector('[data-price-total]');
+            if (priceEl) {
+                priceEl.textContent = formatPrice(mainPrice);
+                // Add highlight animation
+                priceEl.classList.add('text-green-600');
+                setTimeout(() => priceEl.classList.remove('text-green-600'), 1500);
+            }
+
+            // Update net price
+            const netEl = cardEl.querySelector('[data-price-net]');
+            if (netEl) {
+                netEl.textContent = formatPrice(duration.prime_net) + ' DH';
+            }
+
+            // Update taxes
+            const taxEl = cardEl.querySelector('[data-price-taxes]');
+            if (taxEl) {
+                taxEl.textContent = formatPrice(duration.taxes) + ' DH';
+            }
+        }
+
+        // ============ AXA ASSISTANCE MODAL ============
+        let selectedAxaPlanKey = null;
+        let selectedAssistanceOption = null;
+
+        function showAxaAssistanceModal(planKey, planName) {
+            selectedAxaPlanKey = planKey;
+            selectedAssistanceOption = null;
+
+            document.getElementById('axaModalPlanName').textContent = planName;
+            document.getElementById('axaAssistanceModal').classList.remove('hidden');
+            document.getElementById('confirmAssistanceBtn').disabled = true;
+
+            // Reset selections
+            document.querySelectorAll('.assistance-option-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeAxaAssistanceModal() {
+            document.getElementById('axaAssistanceModal').classList.add('hidden');
+            document.body.style.overflow = '';
+            selectedAxaPlanKey = null;
+            selectedAssistanceOption = null;
+        }
+
+        function selectAssistanceOption(option, cardElement) {
+            selectedAssistanceOption = option;
+
+            // Update visual selection
+            document.querySelectorAll('.assistance-option-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            cardElement.classList.add('selected');
+
+            // Enable confirm button
+            document.getElementById('confirmAssistanceBtn').disabled = false;
+        }
+
+        function confirmAssistanceSelection() {
+            if (!selectedAssistanceOption || !selectedAxaPlanKey) return;
+
+            console.log('Selected:', selectedAxaPlanKey, 'with assistance:', selectedAssistanceOption);
+            // Here you can handle the selection (e.g., send to backend, update UI, etc.)
+
+            alert(`Option d'assistance "${selectedAssistanceOption}" sélectionnée avec succès!`);
+            closeAxaAssistanceModal();
+        }
+
+        // ============ PDF GENERATION ============
+        async function generateComparisonPDF() {
+            if (!resultsData) {
+                alert('Aucune donnée disponible pour générer le PDF');
+                return;
+            }
+
+            // Find lowest price plan for each provider
+            const lowestPlans = [];
+            const providerMapping = {
+                'axa': { category: 'Basique', selector: (plans) => plans.find(p => p.plan_name.toLowerCase().includes('basique')) || plans[0] },
+                'sanlam': { category: 'Formule Initiale', selector: (plans) => plans.find(p => p.plan_name.toLowerCase().includes('initiale') || p.plan_name.toLowerCase().includes('tiers')) || plans[0] },
+                'mcma': { category: 'Optimal', selector: (plans) => plans.find(p => p.plan_name.toLowerCase().includes('optimal') || p.plan_name.toLowerCase().includes('essentielle')) || plans[0] },
+                'rma': { category: 'Essentiel', selector: (plans) => plans.find(p => p.plan_name.toLowerCase().includes('essentiel')) || plans[0] }
+            };
+
+            for (const provider of resultsData.providers) {
+                if (!provider.plans || provider.plans.length === 0) continue;
+
+                const mapping = providerMapping[provider.code.toLowerCase()];
+                if (!mapping) continue;
+
+                // Get the plan based on mapping or lowest price
+                let selectedPlan = mapping.selector(provider.plans);
+                if (!selectedPlan) {
+                    // Fallback to lowest price
+                    selectedPlan = provider.plans.reduce((min, p) => {
+                        const currentPrice = currentDuration === 'annual' ? p.annual?.prime_total : p.semi_annual?.prime_total;
+                        const minPrice = currentDuration === 'annual' ? min.annual?.prime_total : min.semi_annual?.prime_total;
+                        return (currentPrice || Infinity) < (minPrice || Infinity) ? p : min;
+                    }, provider.plans[0]);
+                }
+
+                lowestPlans.push({
+                    provider_code: provider.code,
+                    provider_name: provider.name,
+                    provider_logo: provider.logo,
+                    plan: selectedPlan,
+                    category: mapping.category
+                });
+            }
+
+            if (lowestPlans.length === 0) {
+                alert('Aucun plan disponible pour générer le PDF');
+                return;
+            }
+
+            // Sort by price (lowest first)
+            lowestPlans.sort((a, b) => {
+                const priceA = currentDuration === 'annual' ? a.plan.annual?.prime_total : a.plan.semi_annual?.prime_total;
+                const priceB = currentDuration === 'annual' ? b.plan.annual?.prime_total : b.plan.semi_annual?.prime_total;
+                return (priceA || Infinity) - (priceB || Infinity);
+            });
+
+            // Call backend to generate PDF
+            try {
+                const response = await fetch('/api/generate-comparison-pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        plans: lowestPlans,
+                        duration: currentDuration,
+                        vehicle_info: {
+                            marque: document.getElementById('marque').value,
+                            modele: document.getElementById('modele').value,
+                            valeur_neuf: document.getElementById('valeur-neuf').value,
+                            valeur_actuelle: document.getElementById('valeur-actuelle').value,
+                            puissance_fiscale: document.getElementById('puissance-fiscale').value
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Échec de la génération du PDF');
+                }
+
+                // Download PDF
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `comparaison_assurance_${new Date().toISOString().split('T')[0]}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+
+            } catch (error) {
+                console.error('PDF generation error:', error);
+                alert('Erreur lors de la génération du PDF: ' + error.message);
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Gestion des Utilisateurs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+    </style>
+</head>
+
+<body class="font-sans antialiased bg-slate-50 min-h-screen">
+    <!-- Header -->
+    <div class="gradient-bg py-8 shadow-lg border-b border-blue-700">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <span class="text-2xl font-bold text-white mb-1 block">MesAssurances.ma</span>
+                    <h1 class="text-3xl font-extrabold text-white">Administration</h1>
+                    <p class="text-white/90 text-sm mt-1">Gestion des utilisateurs</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="downloadDatabase()"
+                        class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-all duration-200 shadow-lg flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Télécharger BDD
+                    </button>
+                    <a href="/admin/scrapers"
+                        class="px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white rounded-lg font-semibold transition-all duration-200 border border-white/20 backdrop-blur-sm">
+                        Scrapers
+                    </a>
+                    <a href="/settings"
+                        class="px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white rounded-lg font-semibold transition-all duration-200 border border-white/20 backdrop-blur-sm">
+                        Paramètres
+                    </a>
+                    <a href="/"
+                        class="px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white rounded-lg font-semibold transition-all duration-200 border border-white/20 backdrop-blur-sm">
+                        Formulaire
+                    </a>
+                    <button onclick="logout()"
+                        class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all duration-200 shadow-lg">
+                        Déconnexion
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Create User Section -->
+        <div class="glass rounded-2xl shadow-lg p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Créer un nouvel utilisateur</h2>
+
+            <!-- Success/Error Messages -->
+            <div id="successAlert" class="hidden mb-6">
+                <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-xl">
+                    <p id="successText" class="text-green-700 font-medium text-sm"></p>
+                </div>
+            </div>
+
+            <div id="errorAlert" class="hidden mb-6">
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl">
+                    <p id="errorText" class="text-red-700 font-medium text-sm"></p>
+                </div>
+            </div>
+
+            <!-- Create User Form -->
+            <form id="createUserForm" class="space-y-6">
+                <div class="grid md:grid-cols-2 gap-4">
+                    <!-- Name -->
+                    <div>
+                        <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Nom complet <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="name" name="name" required
+                            placeholder="Ex: Ahmed Alami"
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Email <span class="text-red-500">*</span>
+                        </label>
+                        <input type="email" id="email" name="email" required
+                            placeholder="utilisateur@exemple.com"
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                    </div>
+
+                    <!-- Password -->
+                    <div>
+                        <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Mot de passe <span class="text-red-500">*</span>
+                        </label>
+                        <input type="password" id="password" name="password" required
+                            placeholder="••••••••"
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                    </div>
+
+                    <!-- Confirm Password -->
+                    <div>
+                        <label for="confirmPassword" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Confirmer le mot de passe <span class="text-red-500">*</span>
+                        </label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" required
+                            placeholder="••••••••"
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="flex justify-end">
+                    <button type="submit" id="createBtn"
+                        class="px-8 py-3 bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl text-white font-bold rounded-xl transition-all duration-200 flex items-center gap-2">
+                        <svg id="createIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        <svg id="loadingIcon" class="w-5 h-5 animate-spin hidden" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                        </svg>
+                        <span id="btnText">Créer l'utilisateur</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Users List Section -->
+        <div class="glass rounded-2xl shadow-lg p-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Liste des utilisateurs</h2>
+
+            <div id="usersList" class="space-y-4">
+                <!-- Users will be loaded here -->
+                <div class="text-center py-8 text-gray-500">
+                    Chargement des utilisateurs...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const createUserForm = document.getElementById('createUserForm');
+        const errorAlert = document.getElementById('errorAlert');
+        const errorText = document.getElementById('errorText');
+        const successAlert = document.getElementById('successAlert');
+        const successText = document.getElementById('successText');
+        const createBtn = document.getElementById('createBtn');
+        const createIcon = document.getElementById('createIcon');
+        const loadingIcon = document.getElementById('loadingIcon');
+        const btnText = document.getElementById('btnText');
+
+        // Load users on page load
+        loadUsers();
+
+        createUserForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideMessages();
+
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            // Validate passwords match
+            if (password !== confirmPassword) {
+                showError('Les mots de passe ne correspondent pas');
+                return;
+            }
+
+            setLoading(true);
+
+            try {
+                const response = await fetch('/api/admin/create-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Échec de la création de l\'utilisateur');
+                }
+
+                showSuccess(`Utilisateur créé avec succès: ${email}`);
+                createUserForm.reset();
+                loadUsers(); // Reload users list
+
+            } catch (error) {
+                showError(error.message || 'Erreur lors de la création de l\'utilisateur');
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/admin/users');
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Échec du chargement des utilisateurs');
+                }
+
+                displayUsers(data.users);
+
+            } catch (error) {
+                document.getElementById('usersList').innerHTML = `
+                    <div class="text-center py-8 text-red-500">
+                        Erreur lors du chargement des utilisateurs
+                    </div>
+                `;
+            }
+        }
+
+        function displayUsers(users) {
+            const usersList = document.getElementById('usersList');
+
+            if (users.length === 0) {
+                usersList.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        Aucun utilisateur trouvé
+                    </div>
+                `;
+                return;
+            }
+
+            usersList.innerHTML = users.map(user => `
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-indigo-500">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900">${user.name}</h3>
+                            <p class="text-gray-600 text-sm">${user.email}</p>
+                            <div class="mt-2 flex gap-4 text-xs text-gray-500">
+                                <span>Créé: ${new Date(user.created_at).toLocaleDateString('fr-FR')}</span>
+                                ${user.last_login ? `<span>Dernière connexion: ${new Date(user.last_login).toLocaleDateString('fr-FR')}</span>` : '<span>Jamais connecté</span>'}
+                            </div>
+                        </div>
+                        <button onclick="deleteUser(${user.id}, '${user.name}')"
+                            class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold transition-all flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                            Supprimer
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function setLoading(loading) {
+            createIcon.classList.toggle('hidden', loading);
+            loadingIcon.classList.toggle('hidden', !loading);
+            btnText.textContent = loading ? 'Création...' : 'Créer l\'utilisateur';
+            createBtn.disabled = loading;
+        }
+
+        function showError(message) {
+            errorText.textContent = message;
+            errorAlert.classList.remove('hidden');
+            successAlert.classList.add('hidden');
+        }
+
+        function showSuccess(message) {
+            successText.textContent = message;
+            successAlert.classList.remove('hidden');
+            errorAlert.classList.add('hidden');
+        }
+
+        function hideMessages() {
+            errorAlert.classList.add('hidden');
+            successAlert.classList.add('hidden');
+        }
+
+        async function deleteUser(userId, userName) {
+            if (!confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur "${userName}" ?\n\nCette action est irréversible.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/delete-user/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Échec de la suppression de l\'utilisateur');
+                }
+
+                showSuccess(`Utilisateur "${userName}" supprimé avec succès`);
+                loadUsers(); // Reload users list
+
+            } catch (error) {
+                showError(error.message || 'Erreur lors de la suppression de l\'utilisateur');
+            }
+        }
+
+        async function downloadDatabase() {
+            try {
+                // Show loading state (optional)
+                const btn = event.target.closest('button');
+                const originalText = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = `
+                    <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Téléchargement...</span>
+                `;
+
+                // Trigger download
+                window.location.href = '/api/admin/export-database';
+
+                // Reset button after delay
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }, 2000);
+
+            } catch (error) {
+                alert('Erreur lors du téléchargement de la base de données');
+                console.error(error);
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (error) {
+                window.location.href = '/login';
+            }
+        }
+    </script>
+</body>
+
+</html>
