@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion - Comparateur d'Assurance Auto</title>
+    <title>Connexion - MESAS TECH RPA Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
@@ -18,18 +18,34 @@
         }
     </script>
     <style>
+        /* Enhanced CSS Variables from Benchmark */
+        :root {
+            --primary-blue: #2569eb;
+            --primary-blue-dark: #0b1220;
+            --primary-blue-soft: #eff4ff;
+            --dark-slate: #0f172a;
+            --light-slate: #f8fafc;
+            --medium-slate: #64748b;
+            --primary-black: #000000;
+            --primary-white: #ffffff;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
+            background-color: var(--light-slate);
+            color: #1e293b;
         }
+        
         .gradient-bg {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            background: linear-gradient(135deg, var(--primary-blue) 0%, #1d4ed8 100%);
         }
 
         .glass {
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.97);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
@@ -41,13 +57,13 @@
 
         <!-- Login Card -->
         <div class="glass rounded-2xl shadow-2xl p-10 w-full max-w-md relative z-10">
-            <!-- Logo/Title -->
+            <!-- Title -->
             <div class="text-center mb-10">
                 <div class="inline-block mb-4">
-                    <span class="text-3xl font-bold text-blue-600">MesAssurances.ma</span>
+                    <span class="text-3xl font-bold text-blue-600">MESAS TECH</span>
                 </div>
-                <h1 class="text-2xl font-bold text-slate-900 mb-2">Connexion</h1>
-                <p class="text-slate-600 text-sm">Accédez à votre espace comparateur</p>
+                <h1 class="text-2xl font-bold text-slate-900 mb-2">Plateforme RPA & IA Agentique</h1>
+                <p class="text-slate-600 text-sm">Accédez à votre espace d'automatisation intelligente pour l'assurance</p>
             </div>
 
             <!-- Error Message -->
@@ -82,7 +98,7 @@
                 <!-- Submit Button -->
                 <div>
                     <button type="submit" id="loginBtn"
-                        class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-[1.02]">
+                        class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-[1.02]">
                         <svg id="loginIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1">
@@ -103,7 +119,10 @@
             <!-- Footer -->
             <div class="mt-6 text-center">
                 <p class="text-sm text-gray-600">
-                    Contactez l'administrateur pour obtenir un compte
+                    Plateforme réservée aux courtiers d'assurance agréés
+                </p>
+                <p class="text-xs text-gray-500 mt-1">
+                    Contactez l'administrateur pour obtenir un accès
                 </p>
             </div>
         </div>

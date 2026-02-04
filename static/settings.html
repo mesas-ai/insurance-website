@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paramètres - Comparateur d'Assurance Auto</title>
+    <title>Paramètres - MESAS TECH RPA Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
@@ -18,28 +18,45 @@
         }
     </script>
     <style>
+        /* Enhanced CSS Variables from Benchmark */
+        :root {
+            --primary-blue: #2569eb;
+            --primary-blue-dark: #0b1220;
+            --primary-blue-soft: #eff4ff;
+            --dark-slate: #0f172a;
+            --light-slate: #f8fafc;
+            --medium-slate: #64748b;
+            --primary-black: #000000;
+            --primary-white: #ffffff;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
+            background-color: var(--light-slate);
+            color: #1e293b;
         }
+        
         .gradient-bg {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            background: linear-gradient(135deg, var(--primary-blue) 0%, #1d4ed8 100%);
         }
 
         .glass {
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.97);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12);
         }
 
         .file-upload-area {
             border: 2px dashed #cbd5e1;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 1rem;
         }
 
         .file-upload-area:hover {
-            border-color: #3b82f6;
-            background-color: #f1f5f9;
+            border-color: var(--primary-blue);
+            background-color: var(--primary-blue-soft);
         }
 
         .file-upload-area.drag-over {
@@ -55,14 +72,18 @@
         <div class="max-w-7xl mx-auto px-6">
             <div class="flex justify-between items-center">
                 <div>
-                    <span class="text-2xl font-bold text-white mb-1 block">MesAssurances.ma</span>
-                    <h1 class="text-3xl font-extrabold text-white">Paramètres</h1>
-                    <p class="text-white/90 text-sm mt-1">Configuration pour la génération de PDF</p>
+                    <span class="text-2xl font-bold text-white mb-1 block">MESAS TECH</span>
+                    <h1 class="text-3xl font-extrabold text-white">Paramètres RPA</h1>
+                    <p class="text-white/90 text-sm mt-1">Configuration de la plateforme d'automatisation intelligente</p>
                 </div>
                 <div class="flex gap-3">
                     <a href="/"
                         class="px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white rounded-lg font-semibold transition-all duration-200 border border-white/20 backdrop-blur-sm">
-                        Formulaire
+                        Plateforme RPA
+                    </a>
+                    <a href="/admin"
+                        class="px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white rounded-lg font-semibold transition-all duration-200 border border-white/20 backdrop-blur-sm">
+                        Administration
                     </a>
                     <button onclick="logout()"
                         class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all duration-200 shadow-lg">
@@ -75,6 +96,23 @@
 
     <!-- Main Content -->
     <div class="max-w-4xl mx-auto px-4 py-8">
+        <!-- Premium Info Section -->
+        <div class="glass rounded-2xl shadow-lg p-6 mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-blue-900 mb-1">Configuration Avancée RPA</h3>
+                    <p class="text-sm text-blue-700">
+                        Personnalisez l'apparence de vos documents générés automatiquement par la plateforme d'intelligence artificielle.
+                        Ces paramètres s'appliquent à tous les devis et rapports produits par les modules RPA.
+                    </p>
+                </div>
+            </div>
+        </div>
         <!-- Success/Error Messages -->
         <div id="successAlert" class="hidden mb-6">
             <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-xl">
@@ -93,7 +131,7 @@
             <h2 class="text-2xl font-bold text-gray-900 mb-6">Logo de l'Entreprise</h2>
 
             <div class="mb-4">
-                <p class="text-sm text-gray-600 mb-4">Ce logo apparaîtra en haut de vos PDF générés</p>
+                <p class="text-sm text-gray-600 mb-4">Ce logo apparaîtra sur vos documents générés par la plateforme RPA</p>
 
                 <!-- Current Logo Preview -->
                 <div id="logoPreviewContainer" class="mb-4 hidden">
@@ -116,7 +154,7 @@
                 </div>
 
                 <button id="uploadLogoBtn" onclick="uploadLogo()" disabled
-                    class="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed hidden">
+                    class="mt-4 px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed hidden transform hover:scale-[1.02]">
                     <span id="uploadBtnText">Télécharger le Logo</span>
                     <svg id="uploadSpinner" class="hidden inline w-4 h-4 ml-2 animate-spin" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -128,7 +166,7 @@
 
         <!-- Settings Form Section -->
         <div class="glass rounded-2xl shadow-lg p-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">Informations de l'Entreprise</h2>
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Configuration RPA</h2>
 
             <form id="settingsForm" class="space-y-6">
                 <!-- Company Name -->
@@ -137,7 +175,7 @@
                         Nom de l'Entreprise
                     </label>
                     <input type="text" id="companyName" name="companyName"
-                        placeholder="Ex: ABC Assurances"
+                        placeholder="Ex: ABC Courtage & Assurances"
                         class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
                 </div>
 
@@ -147,7 +185,7 @@
                         Texte du Pied de Page
                     </label>
                     <textarea id="footerText" name="footerText" rows="3"
-                        placeholder="Ce texte apparaîtra en bas de vos PDF générés"
+                        placeholder="Ce texte apparaîtra sur vos documents générés par la plateforme RPA"
                         class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all"></textarea>
                     <p class="mt-1 text-xs text-gray-500">Laissez vide pour utiliser le texte par défaut</p>
                 </div>
@@ -155,7 +193,7 @@
                 <!-- Submit Button -->
                 <div class="flex justify-end">
                     <button type="submit" id="saveSettingsBtn"
-                        class="px-8 py-3 bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl text-white font-bold rounded-xl transition-all duration-200 flex items-center gap-2">
+                        class="px-8 py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl text-white font-bold rounded-xl transition-all duration-200 flex items-center gap-2 transform hover:scale-[1.02]">
                         <svg id="saveIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                         </svg>
