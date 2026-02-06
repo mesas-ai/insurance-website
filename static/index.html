@@ -712,20 +712,6 @@
             <form id="insuranceForm" class="space-y-6">
                 <!-- Step 1: Vehicle Information -->
                 <div id="form-step-1" class="form-step active space-y-5">
-                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-6">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-semibold text-blue-900 mb-1">Analyse IA du Véhicule</h3>
-                                <p class="text-sm text-blue-700">Notre RPA analyse automatiquement les données pour optimiser votre tarification</p>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="grid md:grid-cols-2 gap-5">
                         <!-- Marque -->
                         <div>
@@ -849,20 +835,6 @@
 
                 <!-- Step 2: Personal Information -->
                 <div id="form-step-2" class="form-step hidden space-y-5">
-                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 p-4 rounded-r-lg mb-6">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-semibold text-green-900 mb-1">Profilage IA Avancé</h3>
-                                <p class="text-sm text-green-700">Algorithmes prédictifs pour une évaluation de risque précise et personnalisée</p>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="grid md:grid-cols-2 gap-5">
                         <!-- Nom -->
                         <div>
@@ -1524,17 +1496,9 @@
                 'rma': 'Module RPA Watanya'
             };
 
-            const scraperIcons = {
-                'axa': '🏢',
-                'sanlam': '🛡️',
-                'mcma': '🏛️',
-                'rma': '🔰'
-            };
-
             container.innerHTML = scrapers.map(code => `
                 <label class="flex items-center gap-3 p-4 bg-white border-2 border-gray-200 rounded-lg cursor-pointer hover:border-indigo-500 transition-all">
                     <input type="checkbox" name="scrapers[]" value="${code}" class="w-5 h-5 accent-indigo-600 scraper-checkbox" checked>
-                    <span class="text-2xl">${scraperIcons[code] || '📊'}</span>
                     <span class="font-semibold text-gray-800">${scraperNames[code] || code.toUpperCase()}</span>
                 </label>
             `).join('');
@@ -1570,15 +1534,15 @@
             document.querySelectorAll('.form-step').forEach(s => s.classList.add('hidden'));
             document.getElementById(`form-step-${step}`).classList.remove('hidden');
 
-            document.getElementById('step-indicator-1').classList.toggle('bg-indigo-600', step === 1);
-            document.getElementById('step-indicator-1').classList.toggle('bg-gray-200', step !== 1);
+            document.getElementById('step-indicator-1').classList.toggle('bg-blue-600', step === 1);
+            document.getElementById('step-indicator-1').classList.toggle('bg-slate-200', step !== 1);
             document.getElementById('step-indicator-1').classList.toggle('text-white', step === 1);
-            document.getElementById('step-indicator-1').classList.toggle('text-gray-600', step !== 1);
+            document.getElementById('step-indicator-1').classList.toggle('text-slate-600', step !== 1);
 
-            document.getElementById('step-indicator-2').classList.toggle('bg-indigo-600', step === 2);
-            document.getElementById('step-indicator-2').classList.toggle('bg-gray-200', step !== 2);
+            document.getElementById('step-indicator-2').classList.toggle('bg-green-600', step === 2);
+            document.getElementById('step-indicator-2').classList.toggle('bg-slate-200', step !== 2);
             document.getElementById('step-indicator-2').classList.toggle('text-white', step === 2);
-            document.getElementById('step-indicator-2').classList.toggle('text-gray-600', step !== 2);
+            document.getElementById('step-indicator-2').classList.toggle('text-slate-600', step !== 2);
 
             currentStep = step;
             window.scrollTo({ top: 0, behavior: 'smooth' });
