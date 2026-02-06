@@ -817,7 +817,8 @@ def generate_comparison_pdf():
                                 'provider': anonymous_name,
                                 'plan_name': plan.get('plan_name', 'N/A'),
                                 'price': prime_total,
-                                'pricing': pricing
+                                'pricing': pricing,
+                                'plan': plan
                             }
                         break
 
@@ -931,37 +932,77 @@ def generate_comparison_pdf():
         for idx, (cat_key, offer) in enumerate(sorted_offers):
             pricing = offer['pricing']
             
-            offer_data = [
+            plan_obj = offer.get('plan', {})
+            guarantees = plan_obj.get('guarantees', []) if isinstance(plan_obj, dict) else []
+            selectable_fields = plan_obj.get('selectable_fields', []) if isinstance(plan_obj, dict) else []
+
+            offer_rows = [
                 [f"<b>{idx+1}. {cat_key}</b>"],
                 [f"<b>{offer['provider']}</b>"],
                 [offer['plan_name']],
                 [f"<b>Prime TTC: {offer['price']:.2f} DH</b>"],
-                ['<b>Garanties:</b>'],
-                [f"RC: {pricing.get('rc', 'N/A')} DH"],
-                [f"Défense: {pricing.get('defense_recours', 'N/A')} DH"],
-                [f"Assistance: {pricing.get('assistance', 'N/A')} DH"],
-                [f"Ind. Cond.: {pricing.get('individuelle_conducteur', 'N/A')} DH"],
-                [f"Bris Glace: {pricing.get('bris_glace', 'N/A')} DH"],
-                [f"Vol/Incendie: {pricing.get('vol_incendie', 'N/A')} DH"],
-                [f"Dommages: {pricing.get('dommages_collision', 'N/A')} DH"]
+                ['<b>Garanties:</b>']
             ]
-            
-            offer_table = Table(offer_data, colWidths=[68*mm])
+
+            # Add guarantees with thresholds/capital/franchise/selected option when available
+            for g in guarantees:
+                name = g.get('title') or g.get('guarantee_name') or g.get('name') or 'Garantie'
+                included = 'Inclus' if g.get('is_included', True) else 'Non inclus'
+                details = []
+                if g.get('capital_guarantee') is not None:
+                    try:
+                        details.append(f"Plafond: {float(g.get('capital_guarantee')):,.2f} DH")
+                    except Exception:
+                        details.append(f"Plafond: {g.get('capital_guarantee')}")
+                if g.get('franchise'):
+                    details.append(f"Franchise: {g.get('franchise')}")
+                if g.get('selected_option'):
+                    details.append(f"Option: {g.get('selected_option')}")
+                if g.get('prime_annual'):
+                    try:
+                        details.append(f"Prime: {float(g.get('prime_annual')):,.2f} DH")
+                    except Exception:
+                        details.append(f"Prime: {g.get('prime_annual')}")
+
+                detail_str = (" — " + ", ".join(details)) if details else ""
+                offer_rows.append([f"{name}: {included}{detail_str}"])
+
+            # Fallback to common pricing keys when guarantees list is empty
+            if not guarantees:
+                fallback_keys = [
+                    ('RC', 'rc'), ('Défense', 'defense_recours'), ('Assistance', 'assistance'),
+                    ('Ind. Cond.', 'individuelle_conducteur'), ('Bris Glace', 'bris_glace'),
+                    ('Vol/Incendie', 'vol_incendie'), ('Dommages', 'dommages_collision')
+                ]
+                for label, key in fallback_keys:
+                    val = pricing.get(key) if isinstance(pricing, dict) else None
+                    display_val = f"{val} DH" if val is not None else 'N/A'
+                    offer_rows.append([f"{label}: {display_val}"])
+
+            # Add selectable fields and defaults/selected options
+            if selectable_fields:
+                offer_rows.append(['<b>Options sélectionnables:</b>'])
+                for f in selectable_fields:
+                    title = f.get('title') or f.get('field_title') or f.get('field_name') or 'Option'
+                    default = f.get('default') or f.get('selected_option') or ''
+                    offer_rows.append([f"{title}: {default}"])
+
+            offer_table = Table(offer_rows, colWidths=[68*mm])
             offer_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#10b981')),
+                ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#0f172a')),
                 ('TEXTCOLOR', (0, 0), (0, 0), colors.white),
-                ('BACKGROUND', (0, 3), (0, 3), colors.HexColor('#dbeafe')),
+                ('BACKGROUND', (0, 3), (0, 3), colors.HexColor('#e6eefc')),
                 ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 7),
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
                 ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#cbd5e1')),
-                ('LEFTPADDING', (0, 0), (-1, -1), 3),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 3),
-                ('TOPPADDING', (0, 0), (-1, -1), 1.5),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 1.5),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+                ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#d1d5db')),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ('TOPPADDING', (0, 0), (-1, -1), 2),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP')
             ]))
-            
+
             offer_tables.append(offer_table)
 
         # Arrange in 2x2 grid
