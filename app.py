@@ -817,7 +817,8 @@ def generate_comparison_pdf():
                                 'provider': anonymous_name,
                                 'plan_name': plan.get('plan_name', 'N/A'),
                                 'price': prime_total,
-                                'pricing': pricing
+                                'pricing': pricing,
+                                'guarantees': plan.get('guarantees', [])  # Include guarantees from plan
                             }
                         break
 
@@ -931,22 +932,32 @@ def generate_comparison_pdf():
         for idx, (cat_key, offer) in enumerate(sorted_offers):
             pricing = offer['pricing']
             
-            offer_data = [
-                [f"<b>{idx+1}. {cat_key}</b>"],
-                [f"<b>{offer['provider']}</b>"],
-                [offer['plan_name']],
-                [f"<b>Prime TTC: {offer['price']:.2f} DH</b>"],
-                ['<b>Garanties:</b>'],
-                [f"RC: {pricing.get('rc', 'N/A')} DH"],
-                [f"Défense: {pricing.get('defense_recours', 'N/A')} DH"],
-                [f"Assistance: {pricing.get('assistance', 'N/A')} DH"],
-                [f"Ind. Cond.: {pricing.get('individuelle_conducteur', 'N/A')} DH"],
-                [f"Bris Glace: {pricing.get('bris_glace', 'N/A')} DH"],
-                [f"Vol/Incendie: {pricing.get('vol_incendie', 'N/A')} DH"],
-                [f"Dommages: {pricing.get('dommages_collision', 'N/A')} DH"]
-            ]
+            # Build guarantee list from the plan's guarantees array
+            guarantee_rows = [[f"<b>{idx+1}. {cat_key}</b>"], [f"<b>{offer['provider']}</b>"], [offer['plan_name']], [f"<b>Prime TTC: {offer['price']:.2f} DH</b>"]]
             
-            offer_table = Table(offer_data, colWidths=[68*mm])
+            # Add guarantees from the plan data
+            guarantees = offer.get('guarantees', [])
+            if guarantees:
+                guarantee_rows.append(['<b>Garanties:</b>'])
+                for g in guarantees:
+                    if g.get('included', True):  # Only show included guarantees
+                        guarantee_name = g.get('title') or g.get('name', '')
+                        if guarantee_name:
+                            # Truncate long names to fit
+                            if len(guarantee_name) > 35:
+                                guarantee_name = guarantee_name[:32] + '...'
+                            guarantee_rows.append([guarantee_name])
+            else:
+                # Fallback to pricing details if no guarantees available
+                guarantee_rows.append(['<b>Détails:</b>'])
+                if pricing.get('rc'):
+                    guarantee_rows.append([f"RC: {pricing['rc']} DH"])
+                if pricing.get('defense_recours'):
+                    guarantee_rows.append([f"Défense: {pricing['defense_recours']} DH"])
+                if pricing.get('assistance'):
+                    guarantee_rows.append([f"Assistance: {pricing['assistance']} DH"])
+            
+            offer_table = Table(guarantee_rows, colWidths=[68*mm])
             offer_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#10b981')),
                 ('TEXTCOLOR', (0, 0), (0, 0), colors.white),
