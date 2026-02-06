@@ -756,30 +756,94 @@ def update_mcma_quote():
 @app.route('/api/generate-comparison-pdf', methods=['POST'])
 @login_required
 def generate_comparison_pdf():
-    """Generate PDF comparison of lowest offers"""
+    """Generate PDF comparison of lowest offers by category"""
     try:
         from database.models import DatabaseManager
         from reportlab.lib.pagesizes import letter, A4
         from reportlab.lib import colors
         from reportlab.lib.units import inch
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.lib.enums import TA_CENTER, TA_LEFT
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
         from io import BytesIO
         from datetime import datetime
+        from PIL import Image as PILImage
 
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "Request body is required"}), 400
 
-        plans = data.get('plans', [])
+        all_plans = data.get('all_plans', [])
         duration = data.get('duration', 'annual')
         vehicle_info = data.get('vehicle_info', {})
 
-        if not plans:
+        if not all_plans:
             return jsonify({"success": False, "error": "No plans provided"}), 400
 
-        # Get user settings for logo and footer
+        # Define coverage categories with their plan name patterns
+        categories = {
+            'Basique': {
+                'patterns': ['basique', 'formule initiale', 'optimale mamda', 'basique oto'],
+                'display_name': 'Couverture Basique'
+            },
+            'Intermédiaire': {
+                'patterns': ['basique+', 'optimal oto', 'formule essentielle', 'confort'],
+                'display_name': 'Couverture Intermédiaire'
+            },
+            'Collision': {
+                'patterns': ['collision', 'confort oto', 'optimale axa'],
+                'display_name': 'Couverture Collision'
+            },
+            'Premium': {
+                'patterns': ['tous risques', 'formule premium', 'tous risques oto'],
+                'display_name': 'Couverture Premium'
+            }
+        }
+
+        # Categorize and find cheapest in each category
+        categorized_offers = {}
+        provider_counter = {}
+        
+        for provider_data in all_plans:
+            provider_code = provider_data.get('provider_code', '')
+            provider_name = provider_data.get('provider_name', '')
+            
+            # Assign anonymous name
+            if provider_code not in provider_counter:
+                provider_counter[provider_code] = chr(65 + len(provider_counter))  # A, B, C, D...
+            
+            anonymous_name = f"Assurance {provider_counter[provider_code]}"
+            
+            for plan in provider_data.get('plans', []):
+                plan_name = plan.get('plan_name', '').lower()
+                
+                # Get pricing
+                pricing = plan.get('annual') if duration == 'annual' else plan.get('semi_annual')
+                if not pricing:
+                    continue
+                
+                prime_total = pricing.get('prime_total', 0)
+                if prime_total <= 0:
+                    continue
+                
+                # Find matching category
+                for cat_key, cat_info in categories.items():
+                    if any(pattern in plan_name for pattern in cat_info['patterns']):
+                        if cat_key not in categorized_offers or prime_total < categorized_offers[cat_key]['price']:
+                            categorized_offers[cat_key] = {
+                                'category': cat_info['display_name'],
+                                'provider': anonymous_name,
+                                'plan_name': plan.get('plan_name', 'N/A'),
+                                'price': prime_total,
+                                'pricing': pricing,
+                                'plan': plan
+                            }
+                        break
+
+        if not categorized_offers:
+            return jsonify({"success": False, "error": "No valid offers found"}), 400
+
+        # Get user settings for logo
         user_id = session.get('user_id')
         user_settings = DatabaseManager.get_user_settings(user_id) if user_id else None
 
@@ -794,9 +858,9 @@ def generate_comparison_pdf():
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
-            fontSize=24,
+            fontSize=22,
             textColor=colors.HexColor('#1e40af'),
-            spaceAfter=30,
+            spaceAfter=20,
             alignment=TA_CENTER,
             fontName='Helvetica-Bold'
         )
@@ -804,10 +868,20 @@ def generate_comparison_pdf():
         subtitle_style = ParagraphStyle(
             'CustomSubtitle',
             parent=styles['Normal'],
-            fontSize=12,
+            fontSize=11,
             textColor=colors.HexColor('#64748b'),
             spaceAfter=20,
             alignment=TA_CENTER
+        )
+
+        section_title_style = ParagraphStyle(
+            'SectionTitle',
+            parent=styles['Heading2'],
+            fontSize=14,
+            textColor=colors.HexColor('#1e40af'),
+            spaceAfter=12,
+            spaceBefore=12,
+            fontName='Helvetica-Bold'
         )
 
         # Add custom logo if available
@@ -815,106 +889,146 @@ def generate_comparison_pdf():
             logo_path = os.path.join('static', 'uploads', user_settings['logo_filename'])
             if os.path.exists(logo_path):
                 try:
-                    logo = Image(logo_path, width=2*inch, height=1*inch, kind='proportional')
+                    # Open with PIL to get dimensions
+                    pil_img = PILImage.open(logo_path)
+                    img_width, img_height = pil_img.size
+                    aspect = img_height / float(img_width)
+                    
+                    # Set max dimensions
+                    max_width = 2.5 * inch
+                    max_height = 1.2 * inch
+                    
+                    # Calculate dimensions maintaining aspect ratio
+                    if aspect > (max_height / max_width):
+                        display_height = max_height
+                        display_width = display_height / aspect
+                    else:
+                        display_width = max_width
+                        display_height = display_width * aspect
+                    
+                    logo = Image(logo_path, width=display_width, height=display_height)
                     logo.hAlign = 'CENTER'
                     elements.append(logo)
                     elements.append(Spacer(1, 0.3*inch))
-                except:
-                    pass
+                except Exception as e:
+                    print(f"Error loading logo: {e}")
 
         # Title
-        elements.append(Paragraph("Comparaison d'Assurance Auto", title_style))
+        elements.append(Paragraph("Estimation Assurance Auto", title_style))
         elements.append(Paragraph(
-            f"Généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}",
+            f"Document généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}",
             subtitle_style
         ))
-        elements.append(Spacer(1, 0.3*inch))
+        elements.append(Spacer(1, 0.2*inch))
 
-        # Vehicle Information
+        # Vehicle Information Section
+        elements.append(Paragraph("Informations du Véhicule", section_title_style))
+        
         vehicle_data = [
-            ['Informations du Véhicule', ''],
             ['Marque', vehicle_info.get('marque', 'N/A')],
             ['Modèle', vehicle_info.get('modele', 'N/A')],
             ['Puissance Fiscale', f"{vehicle_info.get('puissance_fiscale', 'N/A')} CV"],
             ['Valeur à Neuf', f"{vehicle_info.get('valeur_neuf', 'N/A')} DH"],
             ['Valeur Actuelle', f"{vehicle_info.get('valeur_actuelle', 'N/A')} DH"],
-            ['Durée', '12 Mois (Annuel)' if duration == 'annual' else '6 Mois']
+            ['Durée de Couverture', '12 Mois (Annuel)' if duration == 'annual' else '6 Mois (Semestriel)']
         ]
 
-        vehicle_table = Table(vehicle_data, colWidths=[3*inch, 3*inch])
+        vehicle_table = Table(vehicle_data, colWidths=[2.5*inch, 4*inch])
         vehicle_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3b82f6')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#e0e7ff')),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 12),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')])
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
         ]))
 
         elements.append(vehicle_table)
-        elements.append(Spacer(1, 0.5*inch))
+        elements.append(Spacer(1, 0.4*inch))
 
-        # Comparison Table Header
-        comparison_header = Paragraph("Comparaison des Offres", title_style)
-        elements.append(comparison_header)
-        elements.append(Spacer(1, 0.2*inch))
+        # Offers Section
+        elements.append(Paragraph(f"Meilleures Offres par Catégorie ({len(categorized_offers)} offres)", section_title_style))
+        elements.append(Spacer(1, 0.15*inch))
 
-        # Build comparison table
-        table_data = [['Rang', 'Catégorie', 'Prime TTC']]
+        # Sort categories by price
+        sorted_offers = sorted(categorized_offers.items(), key=lambda x: x[1]['price'])
 
-        for idx, plan_data in enumerate(plans, 1):
-            plan = plan_data['plan']
-            category = plan_data['category']
+        for idx, (cat_key, offer) in enumerate(sorted_offers, 1):
+            # Category header
+            category_header_style = ParagraphStyle(
+                'CategoryHeader',
+                parent=styles['Normal'],
+                fontSize=12,
+                textColor=colors.HexColor('#059669'),
+                fontName='Helvetica-Bold',
+                spaceAfter=8
+            )
+            elements.append(Paragraph(f"{idx}. {offer['category']}", category_header_style))
+            
+            # Offer details table
+            offer_data = [
+                ['Assureur', offer['provider']],
+                ['Formule', offer['plan_name']],
+                ['Prime TTC', f"{offer['price']:.2f} DH"],
+            ]
+            
+            # Add key guarantees if available
+            pricing = offer['pricing']
+            guarantees = []
+            
+            if pricing.get('rc'):
+                guarantees.append(f"RC: {pricing['rc']} DH")
+            if pricing.get('defense_recours'):
+                guarantees.append(f"Défense et Recours: {pricing['defense_recours']} DH")
+            if pricing.get('assistance'):
+                guarantees.append(f"Assistance: {pricing['assistance']} DH")
+            if pricing.get('individuelle_conducteur'):
+                guarantees.append(f"Individuelle Conducteur: {pricing['individuelle_conducteur']} DH")
+            
+            if guarantees:
+                offer_data.append(['Garanties Incluses', ', '.join(guarantees[:3])])  # Show first 3
+            
+            offer_table = Table(offer_data, colWidths=[2*inch, 4.5*inch])
+            offer_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0fdf4')),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#d1d5db')),
+                ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                ('TOPPADDING', (0, 0), (-1, -1), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ]))
+            
+            elements.append(offer_table)
+            elements.append(Spacer(1, 0.25*inch))
 
-            # Get pricing based on duration
-            pricing = plan.get('annual') if duration == 'annual' else plan.get('semi_annual')
-            if not pricing:
-                continue
-
-            prime_total = pricing.get('prime_total', 0)
-
-            table_data.append([
-                f"#{idx}",
-                category,
-                f"{prime_total:.2f} DH"
-            ])
-
-        comparison_table = Table(table_data, colWidths=[1*inch, 3.5*inch, 2.5*inch])
-        comparison_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#10b981')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 11),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f0fdf4')]),
-            ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#d1fae5'))  # Highlight best price
-        ]))
-
-        elements.append(comparison_table)
-        elements.append(Spacer(1, 0.5*inch))
-
-        # Footer
-        footer_text = user_settings.get('footer_text') if user_settings else None
-        if not footer_text:
-            footer_text = "Ce document est généré automatiquement par notre système de comparaison d'assurance."
-
-        footer_style = ParagraphStyle(
-            'Footer',
+        # Disclaimer
+        elements.append(Spacer(1, 0.3*inch))
+        
+        disclaimer_style = ParagraphStyle(
+            'Disclaimer',
             parent=styles['Normal'],
-            fontSize=9,
-            textColor=colors.HexColor('#9ca3af'),
-            alignment=TA_CENTER
+            fontSize=10,
+            textColor=colors.HexColor('#6b7280'),
+            alignment=TA_JUSTIFY,
+            leading=14,
+            spaceBefore=10,
+            spaceAfter=10
         )
-        elements.append(Paragraph(footer_text, footer_style))
+        
+        num_insurances = len(provider_counter)
+        disclaimer_text = f"<b>Note importante :</b> Ces estimations sont fournies à titre indicatif sur la base de {num_insurances} assurance{'s' if num_insurances > 1 else ''}. Les prix et conditions peuvent varier selon votre profil et les garanties choisies. Vous serez contacté pour obtenir une cotation précise et personnalisée."
+        
+        elements.append(Paragraph(disclaimer_text, disclaimer_style))
 
         # Build PDF
         doc.build(elements)
@@ -922,10 +1036,14 @@ def generate_comparison_pdf():
         # Get PDF from buffer
         buffer.seek(0)
 
+        # Generate filename
+        num_offers = len(categorized_offers)
+        filename = f'Estimation Assurance Auto - {num_offers} offre{"s" if num_offers > 1 else ""}.pdf'
+
         return send_file(
             buffer,
             as_attachment=True,
-            download_name=f'comparaison_assurance_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf',
+            download_name=filename,
             mimetype='application/pdf'
         )
 

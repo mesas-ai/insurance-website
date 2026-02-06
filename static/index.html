@@ -2359,52 +2359,24 @@
                 return;
             }
 
-            // Find lowest price plan for each provider
-            const lowestPlans = [];
-            const providerMapping = {
-                'axa': { category: 'Basique', selector: (plans) => plans.find(p => p.plan_name.toLowerCase().includes('basique')) || plans[0] },
-                'sanlam': { category: 'Formule Initiale', selector: (plans) => plans.find(p => p.plan_name.toLowerCase().includes('initiale') || p.plan_name.toLowerCase().includes('tiers')) || plans[0] },
-                'mcma': { category: 'Optimal', selector: (plans) => plans.find(p => p.plan_name.toLowerCase().includes('optimal') || p.plan_name.toLowerCase().includes('essentielle')) || plans[0] },
-                'rma': { category: 'Essentiel', selector: (plans) => plans.find(p => p.plan_name.toLowerCase().includes('essentiel')) || plans[0] }
-            };
-
+            // Prepare all plans data for backend processing
+            const allPlansData = [];
+            
             for (const provider of resultsData.providers) {
                 if (!provider.plans || provider.plans.length === 0) continue;
 
-                const mapping = providerMapping[provider.code.toLowerCase()];
-                if (!mapping) continue;
-
-                // Get the plan based on mapping or lowest price
-                let selectedPlan = mapping.selector(provider.plans);
-                if (!selectedPlan) {
-                    // Fallback to lowest price
-                    selectedPlan = provider.plans.reduce((min, p) => {
-                        const currentPrice = currentDuration === 'annual' ? p.annual?.prime_total : p.semi_annual?.prime_total;
-                        const minPrice = currentDuration === 'annual' ? min.annual?.prime_total : min.semi_annual?.prime_total;
-                        return (currentPrice || Infinity) < (minPrice || Infinity) ? p : min;
-                    }, provider.plans[0]);
-                }
-
-                lowestPlans.push({
+                allPlansData.push({
                     provider_code: provider.code,
                     provider_name: provider.name,
                     provider_logo: provider.logo,
-                    plan: selectedPlan,
-                    category: mapping.category
+                    plans: provider.plans
                 });
             }
 
-            if (lowestPlans.length === 0) {
+            if (allPlansData.length === 0) {
                 alert('Aucun plan disponible pour générer le PDF');
                 return;
             }
-
-            // Sort by price (lowest first)
-            lowestPlans.sort((a, b) => {
-                const priceA = currentDuration === 'annual' ? a.plan.annual?.prime_total : a.plan.semi_annual?.prime_total;
-                const priceB = currentDuration === 'annual' ? b.plan.annual?.prime_total : b.plan.semi_annual?.prime_total;
-                return (priceA || Infinity) - (priceB || Infinity);
-            });
 
             // Call backend to generate PDF
             try {
@@ -2412,7 +2384,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        plans: lowestPlans,
+                        all_plans: allPlansData,
                         duration: currentDuration,
                         vehicle_info: {
                             marque: document.getElementById('marque').value,
@@ -2434,7 +2406,8 @@
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `comparaison_assurance_${new Date().toISOString().split('T')[0]}.pdf`;
+                a.download = response.headers.get('content-disposition')?.split('filename=')[1]?.replace(/"/g, '') || 
+                             `Estimation Assurance Auto.pdf`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
