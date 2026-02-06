@@ -262,15 +262,14 @@
             border-radius: 0 12px 12px 0;
         }
 
-        /* Enhanced step indicators */
+        /* Enhanced step indicators - only visual accents, color controlled by utility classes */
         .indicator-active {
-            background: var(--primary-blue) !important;
-            box-shadow: 0 4px 12px rgba(37, 105, 235, 0.3) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+            transform: translateY(-1px);
         }
 
         .indicator-inactive {
-            background: #e2e8f0 !important;
-            color: var(--medium-slate) !important;
+            opacity: 0.98;
         }
 
         /* Hero Section */
@@ -1534,15 +1533,16 @@
             document.querySelectorAll('.form-step').forEach(s => s.classList.add('hidden'));
             document.getElementById(`form-step-${step}`).classList.remove('hidden');
 
-            document.getElementById('step-indicator-1').classList.toggle('bg-blue-600', step === 1);
-            document.getElementById('step-indicator-1').classList.toggle('bg-slate-200', step !== 1);
-            document.getElementById('step-indicator-1').classList.toggle('text-white', step === 1);
-            document.getElementById('step-indicator-1').classList.toggle('text-slate-600', step !== 1);
+            const s1 = document.getElementById('step-indicator-1');
+            const s2 = document.getElementById('step-indicator-2');
 
-            document.getElementById('step-indicator-2').classList.toggle('bg-green-600', step === 2);
-            document.getElementById('step-indicator-2').classList.toggle('bg-slate-200', step !== 2);
-            document.getElementById('step-indicator-2').classList.toggle('text-white', step === 2);
-            document.getElementById('step-indicator-2').classList.toggle('text-slate-600', step !== 2);
+            if (step === 1) {
+                s1.className = 'px-4 py-2 rounded-full bg-blue-600 text-white font-semibold shadow-sm text-xs';
+                s2.className = 'px-4 py-2 rounded-full bg-slate-200 text-slate-600 font-semibold text-xs';
+            } else if (step === 2) {
+                s1.className = 'px-4 py-2 rounded-full bg-slate-200 text-slate-600 font-semibold text-xs';
+                s2.className = 'px-4 py-2 rounded-full bg-green-600 text-white font-semibold shadow-sm text-xs';
+            }
 
             currentStep = step;
             window.scrollTo({ top: 0, behavior: 'smooth' });
