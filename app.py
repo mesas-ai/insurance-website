@@ -781,16 +781,16 @@ def generate_comparison_pdf():
         if not all_plans:
             return jsonify({"success": False, "error": "No plans provided"}), 400
 
-        # Define coverage categories
+        # Define coverage categories with flexible patterns
         categories = {
-            'Basique': {'patterns': ['basique', 'formule initiale', 'optimale mamda', 'basique oto']},
-            'Intermédiaire': {'patterns': ['basique+', 'optimal oto', 'formule essentielle', 'confort']},
-            'Collision': {'patterns': ['collision', 'confort oto', 'optimale axa']},
-            'Premium': {'patterns': ['tous risques', 'formule premium', 'tous risques oto']}
+            'Premium': {'patterns': ['tous risques', 'formule premium', 'tous risques oto', 'premium', 'complet', 'max', 'integral']},
+            'Collision': {'patterns': ['collision', 'confort oto', 'optimale axa', 'tiers+', 'tiers collision']},
+            'Intermédiaire': {'patterns': ['basique+', 'optimal oto', 'formule essentielle', 'confort', 'essential', 'intermediate', 'milieu']},
+            'Basique': {'patterns': ['basique', 'formule initiale', 'optimale mamda', 'basique oto', 'tiers', 'minimum']}
         }
 
-        # Categorize and find cheapest in each category
-        categorized_offers = {}
+        # Categorize ALL offers by category
+        categorized_offers = {cat: [] for cat in categories.keys()}
         provider_counter = {}
         
         for provider_data in all_plans:
@@ -810,19 +810,40 @@ def generate_comparison_pdf():
                 if prime_total <= 0:
                     continue
                 
+                # Try to match to a category
+                matched = False
                 for cat_key, cat_info in categories.items():
                     if any(pattern in plan_name for pattern in cat_info['patterns']):
-                        if cat_key not in categorized_offers or prime_total < categorized_offers[cat_key]['price']:
-                            categorized_offers[cat_key] = {
-                                'provider': anonymous_name,
-                                'plan_name': plan.get('plan_name', 'N/A'),
-                                'price': prime_total,
-                                'pricing': pricing,
-                                'plan': plan
-                            }
+                        categorized_offers[cat_key].append({
+                            'provider': anonymous_name,
+                            'provider_code': provider_code,
+                            'plan_name': plan.get('plan_name', 'N/A'),
+                            'price': prime_total,
+                            'pricing': pricing,
+                            'plan': plan
+                        })
+                        matched = True
                         break
+                
+                # If no category matched, add to cheapest matching category (fallback)
+                if not matched:
+                    categorized_offers['Basique'].append({
+                        'provider': anonymous_name,
+                        'provider_code': provider_code,
+                        'plan_name': plan.get('plan_name', 'N/A'),
+                        'price': prime_total,
+                        'pricing': pricing,
+                        'plan': plan
+                    })
+        
+        # Remove empty categories
+        categorized_offers = {k: v for k, v in categorized_offers.items() if v}
+        
+        # Sort offers by price within each category
+        for cat_key in categorized_offers:
+            categorized_offers[cat_key].sort(key=lambda x: x['price'])
 
-        if not categorized_offers:
+        if not categorized_offers or all(len(v) == 0 for v in categorized_offers.values()):
             return jsonify({"success": False, "error": "No valid offers found"}), 400
 
         # Get user settings for logo
@@ -837,17 +858,22 @@ def generate_comparison_pdf():
         elements = []
         styles = getSampleStyleSheet()
 
-        # Compact styles
-        title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=16,
-            textColor=colors.HexColor('#1e40af'), spaceAfter=4*mm, alignment=TA_CENTER,
-            fontName='Helvetica-Bold')
+        # Premium styles
+        title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=20,
+            textColor=colors.HexColor('#0f172a'), spaceAfter=2*mm, alignment=TA_CENTER,
+            fontName='Helvetica-Bold', leading=24)
 
-        subtitle_style = ParagraphStyle('Subtitle', parent=styles['Normal'], fontSize=8,
-            textColor=colors.HexColor('#64748b'), spaceAfter=4*mm, alignment=TA_CENTER)
+        subtitle_style = ParagraphStyle('Subtitle', parent=styles['Normal'], fontSize=9,
+            textColor=colors.HexColor('#64748b'), spaceAfter=6*mm, alignment=TA_CENTER,
+            leading=12)
 
-        section_style = ParagraphStyle('Section', parent=styles['Heading2'], fontSize=10,
-            textColor=colors.HexColor('#1e40af'), spaceAfter=2*mm, spaceBefore=3*mm,
-            fontName='Helvetica-Bold')
+        section_style = ParagraphStyle('Section', parent=styles['Heading2'], fontSize=12,
+            textColor=colors.white, spaceAfter=3*mm, spaceBefore=4*mm,
+            fontName='Helvetica-Bold', leading=14)
+        
+        category_title_style = ParagraphStyle('CategoryTitle', parent=styles['Heading2'], fontSize=11,
+            textColor=colors.white, spaceAfter=2*mm, spaceBefore=2*mm,
+            fontName='Helvetica-Bold', leading=13)
 
         # Logo
         if user_settings and user_settings.get('logo_filename'):
@@ -873,9 +899,23 @@ def generate_comparison_pdf():
                 except Exception as e:
                     print(f"Logo error: {e}")
 
+        # Premium Header with gradient effect
+        from reportlab.platypus import KeepTogether, PageTemplate
+        
+        # Add a decorative header
+        header_data = [[""]]
+        header_table = Table(header_data, colWidths=[170*mm], rowHeights=[3*mm])
+        header_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#0f172a')),
+            ('GRID', (0, 0), (0, 0), 0, colors.HexColor('#0f172a'))
+        ]))
+        elements.append(header_table)
+        elements.append(Spacer(1, 2*mm))
+        
         # Title
-        elements.append(Paragraph("Estimation Assurance Auto", title_style))
-        elements.append(Paragraph(f"Généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}", subtitle_style))
+        elements.append(Paragraph("ESTIMATION ASSURANCE AUTOMOBILE", title_style))
+        elements.append(Paragraph(f"<i>Document généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}</i>", subtitle_style))
+        elements.append(Spacer(1, 2*mm))
 
         # Client & Vehicle Info - Side by Side
         elements.append(Paragraph("Informations", section_style))
@@ -922,126 +962,162 @@ def generate_comparison_pdf():
         elements.append(info_table)
         elements.append(Spacer(1, 4*mm))
 
-        # Offers Section - 2x2 Grid
-        elements.append(Paragraph(f"Meilleures Offres ({len(categorized_offers)} catégories)", section_style))
+        # Offers Section - Display all offers by category
+        # Category colors for premium look
+        category_colors = {
+            'Premium': '#dc2626',
+            'Collision': '#2563eb', 
+            'Intermédiaire': '#7c3aed',
+            'Basique': '#059669'
+        }
         
-        sorted_offers = sorted(categorized_offers.items(), key=lambda x: x[1]['price'])
-        
-        # Create 2x2 grid of offers
-        offer_tables = []
-        for idx, (cat_key, offer) in enumerate(sorted_offers):
-            pricing = offer['pricing']
-            
-            plan_obj = offer.get('plan', {})
-            guarantees = plan_obj.get('guarantees', []) if isinstance(plan_obj, dict) else []
-            selectable_fields = plan_obj.get('selectable_fields', []) if isinstance(plan_obj, dict) else []
-
-            offer_rows = [
-                [f"<b>{idx+1}. {cat_key}</b>"],
-                [f"<b>{offer['provider']}</b>"],
-                [offer['plan_name']],
-                [f"<b>Prime TTC: {offer['price']:.2f} DH</b>"],
-                ['<b>Garanties:</b>']
-            ]
-
-            # Add guarantees with thresholds/capital/franchise/selected option when available
-            for g in guarantees:
-                name = g.get('title') or g.get('guarantee_name') or g.get('name') or 'Garantie'
-                included = 'Inclus' if g.get('is_included', True) else 'Non inclus'
-                details = []
-                if g.get('capital_guarantee') is not None:
-                    try:
-                        details.append(f"Plafond: {float(g.get('capital_guarantee')):,.2f} DH")
-                    except Exception:
-                        details.append(f"Plafond: {g.get('capital_guarantee')}")
-                if g.get('franchise'):
-                    details.append(f"Franchise: {g.get('franchise')}")
-                if g.get('selected_option'):
-                    details.append(f"Option: {g.get('selected_option')}")
-                if g.get('prime_annual'):
-                    try:
-                        details.append(f"Prime: {float(g.get('prime_annual')):,.2f} DH")
-                    except Exception:
-                        details.append(f"Prime: {g.get('prime_annual')}")
-
-                detail_str = (" — " + ", ".join(details)) if details else ""
-                offer_rows.append([f"{name}: {included}{detail_str}"])
-
-            # Fallback to common pricing keys when guarantees list is empty
-            if not guarantees:
-                fallback_keys = [
-                    ('RC', 'rc'), ('Défense', 'defense_recours'), ('Assistance', 'assistance'),
-                    ('Ind. Cond.', 'individuelle_conducteur'), ('Bris Glace', 'bris_glace'),
-                    ('Vol/Incendie', 'vol_incendie'), ('Dommages', 'dommages_collision')
-                ]
-                for label, key in fallback_keys:
-                    val = pricing.get(key) if isinstance(pricing, dict) else None
-                    display_val = f"{val} DH" if val is not None else 'N/A'
-                    offer_rows.append([f"{label}: {display_val}"])
-
-            # Add selectable fields and defaults/selected options
-            if selectable_fields:
-                offer_rows.append(['<b>Options sélectionnables:</b>'])
-                for f in selectable_fields:
-                    title = f.get('title') or f.get('field_title') or f.get('field_name') or 'Option'
-                    default = f.get('default') or f.get('selected_option') or ''
-                    offer_rows.append([f"{title}: {default}"])
-
-            offer_table = Table(offer_rows, colWidths=[68*mm])
-            offer_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#0f172a')),
-                ('TEXTCOLOR', (0, 0), (0, 0), colors.white),
-                ('BACKGROUND', (0, 3), (0, 3), colors.HexColor('#e6eefc')),
-                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 8),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#d1d5db')),
-                ('LEFTPADDING', (0, 0), (-1, -1), 4),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-                ('TOPPADDING', (0, 0), (-1, -1), 2),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP')
-            ]))
-
-            offer_tables.append(offer_table)
-
-        # Arrange in 2x2 grid
-        grid_data = []
-        for i in range(0, len(offer_tables), 2):
-            row = [offer_tables[i]]
-            if i + 1 < len(offer_tables):
-                row.append(offer_tables[i + 1])
-            else:
-                row.append('')  # Empty cell if odd number
-            grid_data.append(row)
-
-        grid_table = Table(grid_data, colWidths=[70*mm, 70*mm], spaceBefore=2*mm, spaceAfter=2*mm)
-        grid_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 1*mm),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 1*mm),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 2*mm)
+        elements.append(Spacer(1, 2*mm))
+        header_offer = Table([[f"COMPARATIF DES OFFRES - {len(categorized_offers)} CATÉGORIES"]], colWidths=[170*mm])
+        header_offer.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#0f172a')),
+            ('TEXTCOLOR', (0, 0), (0, 0), colors.white),
+            ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (0, 0), 11),
+            ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+            ('PADDING', (0, 0), (0, 0), 5),
+            ('GRID', (0, 0), (0, 0), 0, colors.HexColor('#0f172a'))
         ]))
-
-        elements.append(grid_table)
+        elements.append(header_offer)
         elements.append(Spacer(1, 3*mm))
+        
+        # Display offers grouped by category
+        cat_order = ['Premium', 'Collision', 'Intermédiaire', 'Basique']
+        offer_counter = 1
+        
+        for cat_key in cat_order:
+            if cat_key not in categorized_offers or not categorized_offers[cat_key]:
+                continue
+            
+            offers_in_cat = categorized_offers[cat_key]
+            cat_color = category_colors.get(cat_key, '#6b7280')
+            
+            # Category header
+            cat_header = Table([[f"<b>{cat_key.upper()}</b>", f"{len(offers_in_cat)} offre(s)"]], colWidths=[140*mm, 30*mm])
+            cat_header.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(cat_color)),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+                ('PADDING', (0, 0), (-1, 0), 4),
+                ('GRID', (0, 0), (-1, 0), 0, colors.HexColor(cat_color))
+            ]))
+            elements.append(cat_header)
+            
+            # Add offers in this category
+            for offer in offers_in_cat:
+                pricing = offer['pricing']
+                plan_obj = offer.get('plan', {})
+                guarantees = plan_obj.get('guarantees', []) if isinstance(plan_obj, dict) else []
+                selectable_fields = plan_obj.get('selectable_fields', []) if isinstance(plan_obj, dict) else []
 
-        # Disclaimer
+                offer_rows = [
+                    [f"<b>#{offer_counter}. {offer['provider']}</b>", f"<b>{offer['price']:.2f} DH TTC</b>"],
+                    [offer['plan_name'], '']
+                ]
+                
+                # Add guarantees with details
+                if guarantees:
+                    offer_rows.append(["<b>Couvertures:</b>", ""])
+                    for g in guarantees:
+                        name = g.get('title') or g.get('guarantee_name') or g.get('name') or 'Garantie'
+                        included = '✓' if g.get('is_included', True) else '✗'
+                        details = []
+                        
+                        if g.get('capital_guarantee') is not None:
+                            try:
+                                details.append(f"Plafond: {float(g.get('capital_guarantee')):,.0f} DH")
+                            except Exception:
+                                details.append(f"Plafond: {g.get('capital_guarantee')}")
+                        if g.get('franchise'):
+                            details.append(f"Franchise: {g.get('franchise')}")
+                        if g.get('selected_option'):
+                            details.append(f"Option: {g.get('selected_option')}")
+                        
+                        detail_str = (" | " + " | ".join(details)) if details else ""
+                        offer_rows.append([f"  {included} {name}{detail_str}", ""])
+                else:
+                    # Fallback display
+                    offer_rows.append(["<b>Couvertures:</b>", ""])
+                    fallback_keys = [('RC', 'rc'), ('Défense', 'defense_recours'), ('Assistance', 'assistance'),
+                                    ('Ind. Cond.', 'individuelle_conducteur'), ('Bris Glace', 'bris_glace'),
+                                    ('Vol/Incendie', 'vol_incendie'), ('Dommages', 'dommages_collision')]
+                    for label, key in fallback_keys:
+                        val = pricing.get(key) if isinstance(pricing, dict) else None
+                        display_val = f"{val} DH" if val is not None else 'Non spécifié'
+                        offer_rows.append([f"  • {label}: {display_val}", ""])
+                
+                # Selectable options if any
+                if selectable_fields:
+                    offer_rows.append(["<b>Options:</b>", ""])
+                    for f in selectable_fields:
+                        title = f.get('title') or f.get('field_title') or f.get('field_name') or 'Option'
+                        default = f.get('default') or f.get('selected_option') or 'À définir'
+                        offer_rows.append([f"  • {title}: {default}", ""])
+                
+                offer_table = Table(offer_rows, colWidths=[130*mm, 40*mm])
+                offer_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f3f4f6')),
+                    ('BACKGROUND', (1, 0), (1, 0), colors.HexColor(cat_color)),
+                    ('TEXTCOLOR', (1, 0), (1, 0), colors.white),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 8),
+                    ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                    ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e5e7eb')),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                    ('TOPPADDING', (0, 0), (-1, -1), 2),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#fafafa')])
+                ]))
+                
+                elements.append(offer_table)
+                elements.append(Spacer(1, 2*mm))
+                offer_counter += 1
+        
+        offer_tables = []  # Clear for backward compatibility
+
+        # No grid table needed anymore
+        elements.append(Spacer(1, 2*mm))
+
+        # Premium Disclaimer Footer
+        elements.append(Spacer(1, 2*mm))
+        footer_table = Table([[""]], colWidths=[170*mm], rowHeights=[2*mm])
+        footer_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#0f172a')),
+            ('GRID', (0, 0), (0, 0), 0, colors.HexColor('#0f172a'))
+        ]))
+        elements.append(footer_table)
+        
         disclaimer_style = ParagraphStyle('Disclaimer', parent=styles['Normal'], fontSize=7,
-            textColor=colors.HexColor('#6b7280'), alignment=TA_JUSTIFY, leading=9)
+            textColor=colors.HexColor('#374151'), alignment=TA_JUSTIFY, leading=10)
         
         num_insurances = len(provider_counter)
-        disclaimer_text = f"<b>Note:</b> Ces estimations sont fournies à titre indicatif sur la base de {num_insurances} assurance{'s' if num_insurances > 1 else ''}. Les prix et conditions peuvent varier selon votre profil. Vous serez contacté pour une cotation précise."
+        disclaimer_text = f"<b>IMPORTANT:</b> Ces estimations sont fournies à titre indicatif sur la base des données de {num_insurances} assureur(s). Les tarifs, conditions et couvertures affichés peuvent varier selon votre profil détaillé. Pour une cotation définitive et précise, nos équipes vous recontacteront pour collecter les informations complémentaires nécessaires."
         
+        elements.append(Spacer(1, 2*mm))
         elements.append(Paragraph(disclaimer_text, disclaimer_style))
 
-        # Footer
+        # Professional Footer with branding
         if user_settings and user_settings.get('footer_text'):
-            footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=6,
-                textColor=colors.HexColor('#9ca3af'), alignment=TA_CENTER)
-            elements.append(Spacer(1, 2*mm))
-            elements.append(Paragraph(user_settings['footer_text'], footer_style))
+            footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=7,
+                textColor=colors.HexColor('#6b7280'), alignment=TA_CENTER, leading=9)
+            elements.append(Spacer(1, 3*mm))
+            elements.append(Paragraph(f"<i>{user_settings['footer_text']}</i>", footer_style))
+        
+        # Document date and security
+        elements.append(Spacer(1, 2*mm))
+        security_style = ParagraphStyle('Security', parent=styles['Normal'], fontSize=6,
+            textColor=colors.HexColor('#9ca3af'), alignment=TA_CENTER)
+        elements.append(Paragraph(f"Document confidentiel • Généré le {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}", security_style))
 
         # Build PDF
         doc.build(elements)
