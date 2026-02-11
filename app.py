@@ -887,8 +887,10 @@ def generate_comparison_pdf():
         elements.append(Paragraph("Estimation Assurance Auto", title_style))
         elements.append(Paragraph(f"Généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}", subtitle_style))
 
-        # Client & Vehicle Info - Side by Side
-        elements.append(Paragraph("Informations", section_style))
+        # Client & Vehicle Info - Side by Side (show count similarly to "Meilleures Offres (4 catégories)")
+        num_categories = len(categorized_offers)
+        info_title = f"Informations ({num_categories} catégorie{'s' if num_categories > 1 else ''})"
+        elements.append(Paragraph(info_title, section_style))
         
         info_data = [
             ['Client', '', 'Véhicule', ''],
@@ -1044,7 +1046,14 @@ def generate_comparison_pdf():
             textColor=colors.HexColor('#6b7280'), alignment=TA_JUSTIFY, leading=9)
         
         num_insurances = len(provider_counter)
-        disclaimer_text = f"<b>Note:</b> Ces estimations sont fournies à titre indicatif sur la base de {num_insurances} assurance{'s' if num_insurances > 1 else ''}. Les prix et conditions peuvent varier selon votre profil. Vous serez contacté pour une cotation précise."
+        disclaimer_text = (
+            f"<b>Note :</b> Ces estimations sont fournies à titre indicatif sur la base de "
+            f"{num_insurances} assurance{'s' if num_insurances > 1 else ''}. "
+            "Les prix et conditions peuvent varier selon votre profil.<br/>"
+            "Tarif calculé sur la base d'un CRM 100 (Coefficient Réduction et Majoration).<br/>"
+            "Vous serez contacté pour une cotation précise par un intermédiaire agréé dans les plus brefs délais, "
+            "afin de vous accompagner dans le choix de l'assurance la plus adaptée à vos besoins en fonction des informations complémentaires fournies."
+        )
         
         elements.append(Paragraph(disclaimer_text, disclaimer_style))
 
