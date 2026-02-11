@@ -1098,10 +1098,12 @@ def process_lead_background(lead_data, callback_url, branding=None):
             return
 
         # Prepare info dicts
-        # Note: map 'valeur_actuelle' from either 'valeur_actuelle' or 'valeur_venale'
+        # Note: map 'valeur_actuelle' from 'valeur_actuelle', 'valeur_venale', or 'prix_estime'
         valeur_actuelle = lead_data.get('valeur_actuelle')
         if not valeur_actuelle:
             valeur_actuelle = lead_data.get('valeur_venale')
+        if not valeur_actuelle:
+            valeur_actuelle = lead_data.get('prix_estime')
 
         vehicle_info = {
             'marque': lead_data.get('marque'),
