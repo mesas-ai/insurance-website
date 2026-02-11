@@ -708,7 +708,7 @@
                 </div>
             </div>
 
-            <form id="insuranceForm" class="space-y-6">
+            <form id="insuranceForm" class="space-y-6" novalidate>
                 <!-- Step 1: Vehicle Information -->
                 <div id="form-step-1" class="form-step active space-y-5">
                     <div class="grid md:grid-cols-2 gap-5">
@@ -813,7 +813,7 @@
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Valeur actuelle (MAD) <span
                                     class="text-red-500">*</span></label>
                             <input type="number" id="valeur-actuelle" name="valeur_actuelle"
-                                placeholder="Entrez la valeur actuelle du véhicule" min="0" step="1000" required
+                                placeholder="Entrez la valeur actuelle du véhicule" min="0" step="1"
                                 class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none transition-all">
                             <small class="text-slate-500 text-xs block mt-2">Veuillez entrer la valeur actuelle de votre véhicule</small>
                             <p class="error-message text-red-500 text-sm mt-1"></p>
@@ -1561,6 +1561,24 @@
                 }
             });
 
+            // Valeur actuelle must be same or lower than Valeur à neuf (MAD)
+            const valeurNeufEl = document.getElementById('valeur-neuf');
+            const valeurActuelleEl = document.getElementById('valeur-actuelle');
+            const valeurNeuf = parseFloat(valeurNeufEl.value) || 0;
+            const valeurActuelle = parseFloat(valeurActuelleEl.value);
+            const msgActuelle = valeurActuelleEl.closest('div').querySelector('.error-message');
+            if (valeurActuelleEl.value !== '' && !isNaN(valeurActuelle)) {
+                if (valeurActuelle > valeurNeuf) {
+                    msgActuelle.textContent = 'La valeur actuelle ne peut pas dépasser la valeur à neuf (MAD).';
+                    valid = false;
+                } else if (valeurActuelle <= 0) {
+                    msgActuelle.textContent = 'La valeur actuelle doit être positive.';
+                    valid = false;
+                } else {
+                    msgActuelle.textContent = '';
+                }
+            }
+
             return valid;
         }
 
@@ -1580,7 +1598,10 @@
             e.preventDefault();
             hideError();
 
-            if (!validateStep1()) return;
+            if (!validateStep1()) {
+                goToStep(1);
+                return;
+            }
 
             // Validate scraper selection
             if (!validateScraperSelection()) {
