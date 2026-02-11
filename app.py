@@ -767,6 +767,15 @@ def generate_pdf_bytes(all_plans, vehicle_info, client_info, duration='annual', 
         from datetime import datetime
         from PIL import Image as PILImage
 
+        def _fmt_pdf_num(v):
+            """Format number for PDF: integer when whole, else 2 decimals (avoids 400000.0)."""
+            if v is None: return 'N/A'
+            try:
+                n = float(v)
+                return str(int(n)) if n == int(n) else f"{n:.2f}"
+            except (TypeError, ValueError):
+                return str(v) if v != '' else 'N/A'
+
         # Define coverage categories
         categories = {
             'Basique': {'patterns': ['basique', 'formule initiale', 'optimale mamda', 'basique oto']},
@@ -905,8 +914,8 @@ def generate_pdf_bytes(all_plans, vehicle_info, client_info, duration='annual', 
              'Immatriculation', vehicle_info.get('immatriculation', 'N/A')],
             ['Assureur Actuel', client_info.get('assureur_actuel', 'Aucun'), 
              'Date MEC', vehicle_info.get('date_mec', 'N/A')],
-            ['', '', 'Valeur Neuf', f"{vehicle_info.get('valeur_neuf', 'N/A')} DH"],
-            ['', '', 'Valeur Actuelle', f"{vehicle_info.get('valeur_actuelle', 'N/A')} DH"],
+            ['', '', 'Valeur Neuf', f"{_fmt_pdf_num(vehicle_info.get('valeur_neuf'))} DH"],
+            ['', '', 'Valeur Actuelle', f"{_fmt_pdf_num(vehicle_info.get('valeur_actuelle'))} DH"],
             ['', '', 'Durée', '12 Mois' if duration == 'annual' else '6 Mois']
         ]
 
@@ -1088,8 +1097,16 @@ def process_lead_background(lead_data, callback_url, branding=None):
     try:
         print(f"Processing background lead for {lead_data.get('email')}")
         
-        # Call comparison service
-        comparison_result = get_all_quotes(lead_data)
+        # Normalize lead_data so scrapers get the same shape as Railway form (e.g. valeur_actuelle)
+        # PythonAnywhere sends DB columns: prix_estime for current value; scrapers expect valeur_actuelle
+        params_for_compare = dict(lead_data)
+        if not params_for_compare.get('valeur_actuelle') and params_for_compare.get('prix_estime') is not None:
+            params_for_compare['valeur_actuelle'] = params_for_compare['prix_estime']
+        if not params_for_compare.get('valeur_actuelle') and params_for_compare.get('valeur_venale') is not None:
+            params_for_compare['valeur_actuelle'] = params_for_compare['valeur_venale']
+        
+        # Call comparison service with normalized params (same as Railway form payload)
+        comparison_result = get_all_quotes(params_for_compare)
         
         providers_with_plans = [p for p in comparison_result.get('providers', []) if p.get('plans')]
         
@@ -1150,7 +1167,7 @@ def process_lead_background(lead_data, callback_url, branding=None):
         
         callback_data = {
             'email': lead_data.get('email'),
-            'lead_id': lead_data.get('lead_id'),
+            'lead_id': lead_data.get('lead_id') or lead_data.get('id'),
             'success': 'true'
         }
         
@@ -1399,8 +1416,8 @@ def generate_comparison_pdf_old():
              'Immatriculation', vehicle_info.get('immatriculation', 'N/A')],
             ['Assureur Actuel', client_info.get('assureur_actuel', 'Aucun'), 
              'Date MEC', vehicle_info.get('date_mec', 'N/A')],
-            ['', '', 'Valeur Neuf', f"{vehicle_info.get('valeur_neuf', 'N/A')} DH"],
-            ['', '', 'Valeur Actuelle', f"{vehicle_info.get('valeur_actuelle', 'N/A')} DH"],
+            ['', '', 'Valeur Neuf', f"{_fmt_pdf_num(vehicle_info.get('valeur_neuf'))} DH"],
+            ['', '', 'Valeur Actuelle', f"{_fmt_pdf_num(vehicle_info.get('valeur_actuelle'))} DH"],
             ['', '', 'Durée', '12 Mois' if duration == 'annual' else '6 Mois']
         ]
 
