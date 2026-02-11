@@ -829,7 +829,7 @@ def generate_comparison_pdf():
         user_id = session.get('user_id')
         user_settings = DatabaseManager.get_user_settings(user_id) if user_id else None
 
-        # Create PDF with tight margins
+        # Create PDF with tight margins (optimized for single page)
         buffer = BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=20*mm, leftMargin=20*mm, 
                                topMargin=15*mm, bottomMargin=15*mm)
@@ -837,17 +837,26 @@ def generate_comparison_pdf():
         elements = []
         styles = getSampleStyleSheet()
 
-        # Compact styles
-        title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=16,
+        # Compact styles (slightly reduced to keep everything on one page)
+        title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=15,
             textColor=colors.HexColor('#1e40af'), spaceAfter=4*mm, alignment=TA_CENTER,
             fontName='Helvetica-Bold')
 
-        subtitle_style = ParagraphStyle('Subtitle', parent=styles['Normal'], fontSize=8,
+        subtitle_style = ParagraphStyle('Subtitle', parent=styles['Normal'], fontSize=7,
             textColor=colors.HexColor('#64748b'), spaceAfter=4*mm, alignment=TA_CENTER)
 
-        section_style = ParagraphStyle('Section', parent=styles['Heading2'], fontSize=10,
+        section_style = ParagraphStyle('Section', parent=styles['Heading2'], fontSize=9,
             textColor=colors.HexColor('#1e40af'), spaceAfter=2*mm, spaceBefore=3*mm,
             fontName='Helvetica-Bold')
+
+        offer_header_style = ParagraphStyle('OfferHeader', parent=styles['Heading3'], fontSize=8.5,
+            textColor=colors.white, alignment=TA_LEFT, fontName='Helvetica-Bold', leading=10)
+
+        offer_subheader_style = ParagraphStyle('OfferSubHeader', parent=styles['Normal'], fontSize=7.5,
+            textColor=colors.HexColor('#0f172a'), alignment=TA_LEFT, fontName='Helvetica-Bold')
+
+        offer_text_style = ParagraphStyle('OfferText', parent=styles['Normal'], fontSize=7,
+            textColor=colors.HexColor('#111827'), alignment=TA_LEFT, leading=9)
 
         # Logo
         if user_settings and user_settings.get('logo_filename'):
@@ -857,7 +866,8 @@ def generate_comparison_pdf():
                     pil_img = PILImage.open(logo_path)
                     img_width, img_height = pil_img.size
                     aspect = img_height / float(img_width)
-                    max_width, max_height = 40*mm, 15*mm
+                    # Make logo visually larger (approx twice previous maximum size)
+                    max_width, max_height = 80*mm, 30*mm
                     
                     if aspect > (max_height / max_width):
                         display_height = max_height
@@ -865,9 +875,9 @@ def generate_comparison_pdf():
                     else:
                         display_width = max_width
                         display_height = display_width * aspect
-                    
                     logo = Image(logo_path, width=display_width, height=display_height)
-                    logo.hAlign = 'CENTER'
+                    # Align logo to the right for a more premium layout
+                    logo.hAlign = 'RIGHT'
                     elements.append(logo)
                     elements.append(Spacer(1, 3*mm))
                 except Exception as e:
@@ -881,7 +891,7 @@ def generate_comparison_pdf():
         elements.append(Paragraph("Informations", section_style))
         
         info_data = [
-            ['<b>Client</b>', '', '<b>Véhicule</b>', ''],
+            ['Client', '', 'Véhicule', ''],
             ['Nom', f"{client_info.get('nom', 'N/A')} {client_info.get('prenom', '')}", 
              'Marque', vehicle_info.get('marque', 'N/A')],
             ['Téléphone', client_info.get('telephone', 'N/A'), 
@@ -906,7 +916,7 @@ def generate_comparison_pdf():
             ('BACKGROUND', (0, 0), (1, 0), colors.HexColor('#dbeafe')),
             ('BACKGROUND', (2, 0), (3, 0), colors.HexColor('#dbeafe')),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 7),
+            ('FONTSIZE', (0, 0), (-1, -1), 6.5),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#cbd5e1')),
@@ -937,11 +947,11 @@ def generate_comparison_pdf():
             selectable_fields = plan_obj.get('selectable_fields', []) if isinstance(plan_obj, dict) else []
 
             offer_rows = [
-                [f"<b>{idx+1}. {cat_key}</b>"],
-                [f"<b>{offer['provider']}</b>"],
-                [offer['plan_name']],
-                [f"<b>Prime TTC: {offer['price']:.2f} DH</b>"],
-                ['<b>Garanties:</b>']
+                [Paragraph(f"{idx+1}. {cat_key}", offer_header_style)],
+                [Paragraph(offer['provider'], offer_subheader_style)],
+                [Paragraph(offer['plan_name'], offer_text_style)],
+                [Paragraph(f"Prime TTC: {offer['price']:.2f} DH", offer_subheader_style)],
+                [Paragraph("Garanties:", offer_subheader_style)]
             ]
 
             # Add guarantees with thresholds/capital/franchise/selected option when available
@@ -965,7 +975,7 @@ def generate_comparison_pdf():
                         details.append(f"Prime: {g.get('prime_annual')}")
 
                 detail_str = (" — " + ", ".join(details)) if details else ""
-                offer_rows.append([f"{name}: {included}{detail_str}"])
+                offer_rows.append([Paragraph(f"{name}: {included}{detail_str}", offer_text_style)])
 
             # Fallback to common pricing keys when guarantees list is empty
             if not guarantees:
@@ -977,45 +987,47 @@ def generate_comparison_pdf():
                 for label, key in fallback_keys:
                     val = pricing.get(key) if isinstance(pricing, dict) else None
                     display_val = f"{val} DH" if val is not None else 'N/A'
-                    offer_rows.append([f"{label}: {display_val}"])
+                    offer_rows.append([Paragraph(f"{label}: {display_val}", offer_text_style)])
 
             # Add selectable fields and defaults/selected options
             if selectable_fields:
-                offer_rows.append(['<b>Options sélectionnables:</b>'])
+                offer_rows.append([Paragraph("Options sélectionnables:", offer_subheader_style)])
                 for f in selectable_fields:
                     title = f.get('title') or f.get('field_title') or f.get('field_name') or 'Option'
                     default = f.get('default') or f.get('selected_option') or ''
-                    offer_rows.append([f"{title}: {default}"])
+                    offer_rows.append([Paragraph(f"{title}: {default}", offer_text_style)])
 
-            offer_table = Table(offer_rows, colWidths=[68*mm])
+            offer_table = Table(offer_rows, colWidths=[40*mm])
             offer_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#0f172a')),
                 ('TEXTCOLOR', (0, 0), (0, 0), colors.white),
                 ('BACKGROUND', (0, 3), (0, 3), colors.HexColor('#e6eefc')),
                 ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('FONTSIZE', (0, 0), (-1, -1), 7),
                 ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                 ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#d1d5db')),
                 ('LEFTPADDING', (0, 0), (-1, -1), 4),
                 ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-                ('TOPPADDING', (0, 0), (-1, -1), 2),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                ('TOPPADDING', (0, 0), (-1, -1), 1.5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 1.5),
                 ('VALIGN', (0, 0), (-1, -1), 'TOP')
             ]))
 
             offer_tables.append(offer_table)
 
-        # Arrange in 2x2 grid
-        grid_data = []
-        for i in range(0, len(offer_tables), 2):
-            row = [offer_tables[i]]
-            if i + 1 < len(offer_tables):
-                row.append(offer_tables[i + 1])
-            else:
-                row.append('')  # Empty cell if odd number
-            grid_data.append(row)
+        # Arrange offers in a single row (up to 4 offers side by side)
+        # This saves vertical space and gives a premium dashboard-like layout
+        max_cols = 4
+        row_cells = []
+        for table in offer_tables[:max_cols]:
+            row_cells.append(table)
+        # Pad with empty cells if fewer than 4 offers
+        while len(row_cells) < max_cols:
+            row_cells.append('')
 
-        grid_table = Table(grid_data, colWidths=[70*mm, 70*mm], spaceBefore=2*mm, spaceAfter=2*mm)
+        grid_data = [row_cells]
+
+        grid_table = Table(grid_data, colWidths=[40*mm] * max_cols, spaceBefore=2*mm, spaceAfter=2*mm)
         grid_table.setStyle(TableStyle([
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('LEFTPADDING', (0, 0), (-1, -1), 1*mm),
@@ -1028,7 +1040,7 @@ def generate_comparison_pdf():
         elements.append(Spacer(1, 3*mm))
 
         # Disclaimer
-        disclaimer_style = ParagraphStyle('Disclaimer', parent=styles['Normal'], fontSize=7,
+        disclaimer_style = ParagraphStyle('Disclaimer', parent=styles['Normal'], fontSize=6.5,
             textColor=colors.HexColor('#6b7280'), alignment=TA_JUSTIFY, leading=9)
         
         num_insurances = len(provider_counter)
@@ -1036,15 +1048,26 @@ def generate_comparison_pdf():
         
         elements.append(Paragraph(disclaimer_text, disclaimer_style))
 
-        # Footer
-        if user_settings and user_settings.get('footer_text'):
-            footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=6,
-                textColor=colors.HexColor('#9ca3af'), alignment=TA_CENTER)
-            elements.append(Spacer(1, 2*mm))
-            elements.append(Paragraph(user_settings['footer_text'], footer_style))
+        # Capture footer text for fixed-position rendering
+        footer_text = user_settings.get('footer_text') if (user_settings and user_settings.get('footer_text')) else None
 
-        # Build PDF
-        doc.build(elements)
+        def draw_footer(canvas, doc_obj):
+            """Draw a fixed footer at the bottom of the page with a small gap from the content."""
+            if not footer_text:
+                return
+            canvas.saveState()
+            footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=6,
+                textColor=colors.HexColor('#9ca3af'), alignment=TA_CENTER, leading=8)
+            footer_para = Paragraph(footer_text, footer_style)
+            # Position footer slightly above the bottom margin to ensure visible gap after disclaimer
+            width, height = A4
+            footer_width = width - doc.leftMargin - doc.rightMargin
+            footer_para.wrapOn(canvas, footer_width, 20*mm)
+            footer_para.drawOn(canvas, doc.leftMargin, 12*mm)
+            canvas.restoreState()
+
+        # Build PDF with custom footer on each page (expected: single page)
+        doc.build(elements, onFirstPage=draw_footer, onLaterPages=draw_footer)
         buffer.seek(0)
 
         # Generate filename
