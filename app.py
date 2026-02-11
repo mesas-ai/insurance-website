@@ -1043,12 +1043,10 @@ def generate_pdf_bytes(all_plans, vehicle_info, client_info, duration='annual', 
             textColor=colors.HexColor('#6b7280'), alignment=TA_JUSTIFY, leading=9)
         
         num_insurances = len(provider_counter)
-        disclaimer_text = f"""
-        * Ce document est une estimation tarifaire générée automatiquement via notre comparateur en ligne.
-        * Les tarifs affichés sont TTC et incluent les frais et taxes en vigueur pour {num_insurances} assureurs partenaires.
-        * Ces offres sont soumises aux conditions générales et particulières de chaque compagnie d'assurance.
-        * La couverture exacte dépend des options et garanties finalement souscrites.
-        * Validité de l'offre : 7 jours à compter de la date d'émission.
+        disclaimer_text = """
+        Note : Ces estimations sont fournies à titre indicatif sur la base de 3 assurances. Les prix et conditions peuvent varier selon votre profil.
+        Tarif calculé sur la base d'un CRM 100 (Coefficient Réduction et Majoration).
+        Vous serez contacté pour une cotation précise dans les plus brefs délais, afin de vous accompagner dans le choix de l'assurance la plus adaptée à vos besoins en fonction des informations complémentaires fournies.
         """
         elements.append(Paragraph(disclaimer_text.strip(), disclaimer_style))
         
@@ -1100,6 +1098,11 @@ def process_lead_background(lead_data, callback_url, branding=None):
             return
 
         # Prepare info dicts
+        # Note: map 'valeur_actuelle' from either 'valeur_actuelle' or 'valeur_venale'
+        valeur_actuelle = lead_data.get('valeur_actuelle')
+        if not valeur_actuelle:
+            valeur_actuelle = lead_data.get('valeur_venale')
+
         vehicle_info = {
             'marque': lead_data.get('marque'),
             'modele': lead_data.get('modele'),
@@ -1109,7 +1112,7 @@ def process_lead_background(lead_data, callback_url, branding=None):
             'immatriculation': lead_data.get('immatriculation'),
             'date_mec': lead_data.get('date_mec'),
             'valeur_neuf': lead_data.get('valeur_neuf'),
-            'valeur_actuelle': lead_data.get('valeur_actuelle'),
+            'valeur_actuelle': valeur_actuelle,
         }
         
         client_info = {
