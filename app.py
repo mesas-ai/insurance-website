@@ -753,9 +753,495 @@ def update_mcma_quote():
         }), 500
 
 
+
+def generate_pdf_bytes(all_plans, vehicle_info, client_info, duration='annual', branding=None, user_settings=None):
+    """Internal function to generate PDF bytes"""
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib import colors
+        from reportlab.lib.units import inch, mm
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+        from io import BytesIO
+        from datetime import datetime
+        from PIL import Image as PILImage
+
+        # Define coverage categories
+        categories = {
+            'Basique': {'patterns': ['basique', 'formule initiale', 'optimale mamda', 'basique oto']},
+            'Intermédiaire': {'patterns': ['basique+', 'optimal oto', 'formule essentielle', 'confort']},
+            'Collision': {'patterns': ['collision', 'confort oto', 'optimale axa']},
+            'Premium': {'patterns': ['tous risques', 'formule premium', 'tous risques oto']}
+        }
+
+        # Categorize and find cheapest in each category
+        categorized_offers = {}
+        provider_counter = {}
+        
+        for provider_data in all_plans:
+            provider_code = provider_data.get('provider_code', '')
+            if provider_code not in provider_counter:
+                provider_counter[provider_code] = chr(65 + len(provider_counter))
+            
+            anonymous_name = f"Assurance {provider_counter[provider_code]}"
+            
+            for plan in provider_data.get('plans', []):
+                plan_name = plan.get('plan_name', '').lower()
+                pricing = plan.get('annual') if duration == 'annual' else plan.get('semi_annual')
+                if not pricing:
+                    continue
+                
+                prime_total = pricing.get('prime_total', 0)
+                if prime_total <= 0:
+                    continue
+                
+                for cat_key, cat_info in categories.items():
+                    if any(pattern in plan_name for pattern in cat_info['patterns']):
+                        if cat_key not in categorized_offers or prime_total < categorized_offers[cat_key]['price']:
+                            categorized_offers[cat_key] = {
+                                'provider': anonymous_name,
+                                'plan_name': plan.get('plan_name', 'N/A'),
+                                'price': prime_total,
+                                'pricing': pricing,
+                                'plan': plan
+                            }
+                        break
+
+        if not categorized_offers:
+            return None
+
+        # Create PDF with tight margins (optimized for single page)
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=20*mm, leftMargin=20*mm, 
+                               topMargin=15*mm, bottomMargin=15*mm)
+
+        elements = []
+        styles = getSampleStyleSheet()
+
+        # Compact styles (slightly reduced to keep everything on one page)
+        title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=15,
+            textColor=colors.HexColor('#1e40af'), spaceAfter=4*mm, alignment=TA_CENTER,
+            fontName='Helvetica-Bold')
+
+        subtitle_style = ParagraphStyle('Subtitle', parent=styles['Normal'], fontSize=7,
+            textColor=colors.HexColor('#64748b'), spaceAfter=4*mm, alignment=TA_CENTER)
+
+        section_style = ParagraphStyle('Section', parent=styles['Heading2'], fontSize=9,
+            textColor=colors.HexColor('#1e40af'), spaceAfter=2*mm, spaceBefore=3*mm,
+            fontName='Helvetica-Bold')
+
+        offer_header_style = ParagraphStyle('OfferHeader', parent=styles['Heading3'], fontSize=8.5,
+            textColor=colors.white, alignment=TA_LEFT, fontName='Helvetica-Bold', leading=10)
+
+        offer_subheader_style = ParagraphStyle('OfferSubHeader', parent=styles['Normal'], fontSize=7.5,
+            textColor=colors.HexColor('#0f172a'), alignment=TA_LEFT, fontName='Helvetica-Bold')
+
+        offer_text_style = ParagraphStyle('OfferText', parent=styles['Normal'], fontSize=7,
+            textColor=colors.HexColor('#111827'), alignment=TA_LEFT, leading=9)
+
+        # Logo handling logic with branding support
+        logo_path = None
+        # Check branding first
+        if branding and branding.get('logo_filename'):
+            # Check static/logos first (project convention)
+            param_filename = branding.get('logo_filename')
+            possible_paths = [
+                os.path.join(app.static_folder, 'logos', param_filename),
+                os.path.join(app.static_folder, 'uploads', param_filename)
+            ]
+            for p in possible_paths:
+                if os.path.exists(p):
+                    logo_path = p
+                    break
+        # Fallback to user settings
+        elif user_settings and user_settings.get('logo_filename'):
+            logo_path = os.path.join(app.static_folder, 'uploads', user_settings['logo_filename'])
+            
+        if logo_path and os.path.exists(logo_path):
+            try:
+                pil_img = PILImage.open(logo_path)
+                img_width, img_height = pil_img.size
+                aspect = img_height / float(img_width)
+                # Make logo visually larger (approx twice previous maximum size)
+                max_width, max_height = 80*mm, 30*mm
+                
+                if aspect > (max_height / max_width):
+                    display_height = max_height
+                    display_width = display_height / aspect
+                else:
+                    display_width = max_width
+                    display_height = display_width * aspect
+                logo = Image(logo_path, width=display_width, height=display_height)
+                # Align logo to the right for a more premium layout
+                logo.hAlign = 'RIGHT'
+                elements.append(logo)
+                elements.append(Spacer(1, 3*mm))
+            except Exception as e:
+                print(f"Logo error: {e}")
+
+        # Title
+        elements.append(Paragraph("Estimation Assurance Auto", title_style))
+        elements.append(Paragraph(f"Généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}", subtitle_style))
+
+        # Client & Vehicle Info - Side by Side (show count similarly to "Meilleures Offres (4 catégories)")
+        num_categories = len(categorized_offers)
+        info_title = f"Informations ({num_categories} catégorie{'s' if num_categories > 1 else ''})"
+        elements.append(Paragraph(info_title, section_style))
+        
+        info_data = [
+            ['Client', '', 'Véhicule', ''],
+            ['Nom', f"{client_info.get('nom', 'N/A')} {client_info.get('prenom', '')}", 
+             'Marque', vehicle_info.get('marque', 'N/A')],
+            ['Téléphone', client_info.get('telephone', 'N/A'), 
+             'Modèle', vehicle_info.get('modele', 'N/A')],
+            ['Email', client_info.get('email', 'N/A'), 
+             'Puissance', f"{vehicle_info.get('puissance_fiscale', 'N/A')} CV"],
+            ['Ville', client_info.get('ville', 'N/A'), 
+             'Carburant', vehicle_info.get('carburant', 'N/A')],
+            ['Date Naissance', client_info.get('date_naissance', 'N/A'), 
+             'Places', vehicle_info.get('nombre_places', 'N/A')],
+            ['Date Permis', client_info.get('date_permis', 'N/A'), 
+             'Immatriculation', vehicle_info.get('immatriculation', 'N/A')],
+            ['Assureur Actuel', client_info.get('assureur_actuel', 'Aucun'), 
+             'Date MEC', vehicle_info.get('date_mec', 'N/A')],
+            ['', '', 'Valeur Neuf', f"{vehicle_info.get('valeur_neuf', 'N/A')} DH"],
+            ['', '', 'Valeur Actuelle', f"{vehicle_info.get('valeur_actuelle', 'N/A')} DH"],
+            ['', '', 'Durée', '12 Mois' if duration == 'annual' else '6 Mois']
+        ]
+
+        info_table = Table(info_data, colWidths=[25*mm, 45*mm, 28*mm, 42*mm])
+        info_table.setStyle(TableStyle([
+            # First row like offers header: dark background, white text
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f172a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            # Body rows on white background
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('FONTSIZE', (0, 0), (-1, -1), 6.5),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#cbd5e1')),
+            ('LEFTPADDING', (0, 0), (-1, -1), 3),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (2, 1), (2, -1), 'Helvetica-Bold')
+        ]))
+
+        elements.append(info_table)
+        elements.append(Spacer(1, 4*mm))
+
+        # Offers Section - 2x2 Grid
+        elements.append(Paragraph(f"Meilleures Offres ({len(categorized_offers)} catégories)", section_style))
+        
+        sorted_offers = sorted(categorized_offers.items(), key=lambda x: x[1]['price'])
+        
+        # Create 2x2 grid of offers
+        offer_tables = []
+        for idx, (cat_key, offer) in enumerate(sorted_offers):
+            pricing = offer['pricing']
+            
+            plan_obj = offer.get('plan', {})
+            guarantees = plan_obj.get('guarantees', []) if isinstance(plan_obj, dict) else []
+            selectable_fields = plan_obj.get('selectable_fields', []) if isinstance(plan_obj, dict) else []
+
+            offer_rows = [
+                [Paragraph(f"{idx+1}. {cat_key}", offer_header_style)],
+                [Paragraph(offer['provider'], offer_subheader_style)],
+                [Paragraph(offer['plan_name'], offer_text_style)],
+                [Paragraph(f"Prime TTC: {offer['price']:.2f} DH", offer_subheader_style)],
+                [Paragraph("Garanties:", offer_subheader_style)]
+            ]
+
+            # Add guarantees with thresholds/capital/franchise/selected option when available
+            for g in guarantees:
+                name = g.get('title') or g.get('guarantee_name') or g.get('name') or 'Garantie'
+                included = 'Inclus' if g.get('is_included', True) else 'Non inclus'
+                details = []
+                if g.get('capital_guarantee') is not None:
+                    try:
+                        details.append(f"Plafond: {float(g.get('capital_guarantee')):,.2f} DH")
+                    except Exception:
+                        details.append(f"Plafond: {g.get('capital_guarantee')}")
+                if g.get('franchise'):
+                    details.append(f"Franchise: {g.get('franchise')}")
+                if g.get('selected_option'):
+                    details.append(f"Option: {g.get('selected_option')}")
+                if g.get('prime_annual'):
+                    try:
+                        details.append(f"Prime: {float(g.get('prime_annual')):,.2f} DH")
+                    except Exception:
+                        details.append(f"Prime: {g.get('prime_annual')}")
+
+                detail_str = (" — " + ", ".join(details)) if details else ""
+                offer_rows.append([Paragraph(f"{name}: {included}{detail_str}", offer_text_style)])
+
+            # Fallback to common pricing keys when guarantees list is empty
+            if not guarantees:
+                fallback_keys = [
+                    ('RC', 'rc'), ('Défense', 'defense_recours'), ('Assistance', 'assistance'),
+                    ('Ind. Cond.', 'individuelle_conducteur'), ('Bris Glace', 'bris_glace'),
+                    ('Vol/Incendie', 'vol_incendie'), ('Dommages', 'dommages_collision')
+                ]
+                for label, key in fallback_keys:
+                    val = pricing.get(key) if isinstance(pricing, dict) else None
+                    display_val = f"{val} DH" if val is not None else 'N/A'
+                    offer_rows.append([Paragraph(f"{label}: {display_val}", offer_text_style)])
+
+            # Add selectable fields and defaults/selected options
+            if selectable_fields:
+                offer_rows.append([Paragraph("Options sélectionnables:", offer_subheader_style)])
+                for f in selectable_fields:
+                    title = f.get('title') or f.get('field_title') or f.get('field_name') or 'Option'
+                    default = f.get('default') or f.get('selected_option') or ''
+                    offer_rows.append([Paragraph(f"{title}: {default}", offer_text_style)])
+
+            offer_table = Table(offer_rows, colWidths=[40*mm])
+            offer_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#0f172a')),
+                ('TEXTCOLOR', (0, 0), (0, 0), colors.white),
+                ('BACKGROUND', (0, 3), (0, 3), colors.HexColor('#e6eefc')),
+                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 7),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#d1d5db')),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ('TOPPADDING', (0, 0), (-1, -1), 1.5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 1.5),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP')
+            ]))
+
+            offer_tables.append(offer_table)
+
+        # Arrange offers in a single row (up to 4 offers side by side)
+        max_cols = 4
+        row_cells = []
+        for table in offer_tables[:max_cols]:
+            row_cells.append(table)
+        while len(row_cells) < max_cols:
+            row_cells.append('')
+
+        grid_data = [row_cells]
+        
+        grid_table = Table(grid_data, colWidths=[40*mm] * max_cols, spaceBefore=2*mm, spaceAfter=2*mm)
+        grid_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 1*mm),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 1*mm),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2*mm)
+        ]))
+
+        elements.append(grid_table)
+        elements.append(Spacer(1, 3*mm))
+
+        # Disclaimer
+        disclaimer_style = ParagraphStyle('Disclaimer', parent=styles['Normal'], fontSize=6.5,
+            textColor=colors.HexColor('#6b7280'), alignment=TA_JUSTIFY, leading=9)
+        
+        num_insurances = len(provider_counter)
+        disclaimer_text = f"""
+        * Ce document est une estimation tarifaire générée automatiquement via notre comparateur en ligne.
+        * Les tarifs affichés sont TTC et incluent les frais et taxes en vigueur pour {num_insurances} assureurs partenaires.
+        * Ces offres sont soumises aux conditions générales et particulières de chaque compagnie d'assurance.
+        * La couverture exacte dépend des options et garanties finalement souscrites.
+        * Validité de l'offre : 7 jours à compter de la date d'émission.
+        """
+        elements.append(Paragraph(disclaimer_text.strip(), disclaimer_style))
+        
+        # Footer
+        footer_text = "MesAssurances.ma - Comparateur d'Assurances au Maroc"
+        if user_settings and user_settings.get('company_name'):
+            footer_text = f"{user_settings['company_name']} - Courtier d'Assurances"
+            
+        # Override with branding footer if provided
+        if branding and branding.get('footer_text'):
+            footer_text = branding['footer_text']
+            
+        # Fixed footer drawing function
+        def draw_footer(canvas, doc_obj):
+            canvas.saveState()
+            footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=6,
+                textColor=colors.HexColor('#94a3b8'), alignment=TA_CENTER)
+            
+            p = Paragraph(footer_text, footer_style)
+            w, h = p.wrap(doc_obj.width, doc_obj.bottomMargin)
+            p.drawOn(canvas, doc_obj.leftMargin, doc_obj.bottomMargin - 10*mm)
+            canvas.restoreState()
+
+        # Build PDF
+        doc.build(elements, onFirstPage=draw_footer, onLaterPages=draw_footer)
+        pdf_bytes = buffer.getvalue()
+        buffer.close()
+        
+        return pdf_bytes
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return None
+
+
+def process_lead_background(lead_data, callback_url, branding=None):
+    """Background task to scrape quotes, generate PDF, and send callback"""
+    try:
+        print(f"Processing background lead for {lead_data.get('email')}")
+        
+        # Call comparison service
+        comparison_result = get_all_quotes(lead_data)
+        
+        providers_with_plans = [p for p in comparison_result.get('providers', []) if p.get('plans')]
+        
+        if not providers_with_plans:
+            print("No quotes found for this lead")
+            return
+
+        # Prepare info dicts
+        vehicle_info = {
+            'marque': lead_data.get('marque'),
+            'modele': lead_data.get('modele'),
+            'carburant': lead_data.get('carburant'),
+            'puissance_fiscale': lead_data.get('puissance_fiscale'),
+            'nombre_places': lead_data.get('nombre_places'),
+            'immatriculation': lead_data.get('immatriculation'),
+            'date_mec': lead_data.get('date_mec'),
+            'valeur_neuf': lead_data.get('valeur_neuf'),
+            'valeur_actuelle': lead_data.get('valeur_actuelle'),
+        }
+        
+        client_info = {
+            'nom': lead_data.get('nom'),
+            'prenom': lead_data.get('prenom'),
+            'telephone': lead_data.get('telephone'),
+            'email': lead_data.get('email'),
+            'ville': lead_data.get('ville'),
+            'date_naissance': lead_data.get('date_naissance'),
+            'date_permis': lead_data.get('date_permis'),
+            'assureur_actuel': lead_data.get('assureur_actuel'),
+        }
+
+        # Generate PDF bytes
+        pdf_bytes = generate_pdf_bytes(
+            all_plans=comparison_result.get('providers', []),
+            vehicle_info=vehicle_info,
+            client_info=client_info,
+            duration='annual',
+            branding=branding
+        )
+
+        if not pdf_bytes:
+            print("Failed to generate PDF")
+            return
+
+        # Send Callback
+        print(f"Sending callback to {callback_url}")
+        
+        files = {
+            'pdf': ('comparatif_assurance.pdf', pdf_bytes, 'application/pdf')
+        }
+        
+        callback_data = {
+            'email': lead_data.get('email'),
+            'lead_id': lead_data.get('lead_id'),
+            'success': 'true'
+        }
+        
+        import requests
+        resp = requests.post(callback_url, data=callback_data, files=files, timeout=45)
+        print(f"Callback response: {resp.status_code}")
+
+    except Exception as e:
+        print(f"Background processing error: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+@app.route('/api/process-auto-lead', methods=['POST'])
+def process_auto_lead():
+    """Async endpoint to trigger auto insurance scraping and PDF generation."""
+    import threading
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "Request body is required"}), 400
+            
+        lead_data = data.get('lead_data')
+        callback_url = data.get('callback_url')
+        branding = data.get('branding')
+        
+        if not lead_data or not callback_url:
+             return jsonify({"success": False, "error": "lead_data and callback_url are required"}), 400
+             
+        # Start background thread
+        thread = threading.Thread(
+            target=process_lead_background,
+            args=(lead_data, callback_url, branding)
+        )
+        thread.daemon = True
+        thread.start()
+        
+        return jsonify({
+            "success": True,
+            "message": "Processing started",
+            "status": "accepted"
+        }), 202
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route('/api/generate-comparison-pdf', methods=['POST'])
 @login_required
 def generate_comparison_pdf():
+    """Generate professional one-page PDF comparison (sync)"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "Request body is required"}), 400
+
+        all_plans = data.get('all_plans', [])
+        duration = data.get('duration', 'annual')
+        vehicle_info = data.get('vehicle_info', {})
+        client_info = data.get('client_info', {})
+        branding = data.get('branding', None)
+
+        if not all_plans:
+            return jsonify({"success": False, "error": "No plans provided"}), 400
+
+        # Get user settings
+        from database.models import DatabaseManager
+        user_id = session.get('user_id')
+        user_settings = DatabaseManager.get_user_settings(user_id) if user_id else None
+
+        # Generate PDF
+        pdf_bytes = generate_pdf_bytes(all_plans, vehicle_info, client_info, duration, branding, user_settings)
+
+        if not pdf_bytes:
+             return jsonify({"success": False, "error": "PDF generation failed"}), 500
+
+        # Create response
+        from io import BytesIO
+        response = send_file(
+            BytesIO(pdf_bytes),
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=f"comparatif_assurance_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+        )
+        return response
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/generate-comparison-pdf_OLD', methods=['POST'])
+@login_required
+def generate_comparison_pdf_old():
     """Generate professional one-page PDF comparison"""
     try:
         from database.models import DatabaseManager
