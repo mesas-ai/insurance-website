@@ -915,9 +915,12 @@ def generate_comparison_pdf():
 
         info_table = Table(info_data, colWidths=[25*mm, 45*mm, 28*mm, 42*mm])
         info_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (1, 0), colors.HexColor('#dbeafe')),
-            ('BACKGROUND', (2, 0), (3, 0), colors.HexColor('#dbeafe')),
+            # First row like offers header: dark background, white text
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f172a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            # Body rows on white background
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
             ('FONTSIZE', (0, 0), (-1, -1), 6.5),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -927,8 +930,7 @@ def generate_comparison_pdf():
             ('TOPPADDING', (0, 0), (-1, -1), 2),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
             ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
-            ('FONTNAME', (2, 1), (2, -1), 'Helvetica-Bold'),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8fafc')])
+            ('FONTNAME', (2, 1), (2, -1), 'Helvetica-Bold')
         ]))
 
         elements.append(info_table)
@@ -1051,7 +1053,7 @@ def generate_comparison_pdf():
             f"{num_insurances} assurance{'s' if num_insurances > 1 else ''}. "
             "Les prix et conditions peuvent varier selon votre profil.<br/>"
             "Tarif calculé sur la base d'un CRM 100 (Coefficient Réduction et Majoration).<br/>"
-            "Vous serez contacté pour une cotation précise par un intermédiaire agréé dans les plus brefs délais, "
+            "Vous serez contacté pour une cotation précise dans les plus brefs délais, "
             "afin de vous accompagner dans le choix de l'assurance la plus adaptée à vos besoins en fonction des informations complémentaires fournies."
         )
         
