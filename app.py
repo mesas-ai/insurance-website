@@ -781,69 +781,112 @@ def generate_pdf_bytes(all_plans, vehicle_info, client_info, duration='annual', 
             'Basique': {'patterns': ['basique', 'formule initiale', 'optimale mamda', 'basique oto']},
             'Intermédiaire': {'patterns': ['basique+', 'optimal oto', 'formule essentielle', 'confort']},
             'Collision': {'patterns': ['collision', 'confort oto', 'optimale axa']},
-            'Premium': {'patterns': ['tous risques', 'formule premium', 'tous risques oto']}
+            'Premium': {'patterns': ['tous risques', 'formule premium', 'tous risques oto', 'premium', 'tout risque']}
         }
 
         # FIX: Sort providers consistently by provider_code (deterministic order)
-        sorted_providers = sorted(all_plans, key=lambda p: p.get('provider_code', ''))
+        # Note: comparison_service returns 'code' not 'provider_code'
+        print(f"[PDF DEBUG] ===== PDF Generation Started =====")
+        print(f"[PDF DEBUG] Received {len(all_plans)} providers")
+        for p in all_plans:
+            code = p.get('code') or p.get('provider_code', '?')
+            plan_count = len(p.get('plans', []))
+            print(f"[PDF DEBUG]   Provider: {code} ({p.get('name', 'N/A')}) - {plan_count} plans")
+        
+        sorted_providers = sorted(all_plans, key=lambda p: p.get('code', p.get('provider_code', '')))
         
         # FIX: Assign provider letters consistently based on sorted order
         provider_code_to_letter = {}
         for idx, provider_data in enumerate(sorted_providers):
-            provider_code = provider_data.get('provider_code', '')
+            # Handle both 'code' (from comparison_service) and 'provider_code' (legacy)
+            provider_code = provider_data.get('code') or provider_data.get('provider_code', '')
             if provider_code and provider_code not in provider_code_to_letter:
                 letter = chr(65 + len(provider_code_to_letter))  # A, B, C, D...
                 provider_code_to_letter[provider_code] = letter
+                print(f"[PDF DEBUG]   Assigned letter {letter} to provider {provider_code}")
         
         # FIX: Collect ALL plans from ALL providers first (with provider info)
         all_plans_with_provider = []
         for provider_data in sorted_providers:
-            provider_code = provider_data.get('provider_code', '')
+            # Handle both 'code' (from comparison_service) and 'provider_code' (legacy)
+            provider_code = provider_data.get('code') or provider_data.get('provider_code', '')
             anonymous_name = f"Assurance {provider_code_to_letter.get(provider_code, '?')}"
             
             for plan in provider_data.get('plans', []):
                 plan_name = plan.get('plan_name', '').lower()
+                plan_name_orig = plan.get('plan_name', 'N/A')
                 pricing = plan.get('annual') if duration == 'annual' else plan.get('semi_annual')
                 if not pricing:
+                    print(f"[PDF DEBUG]   Skipping {plan_name_orig} ({provider_code}): No pricing data")
                     continue
                 
                 prime_total = pricing.get('prime_total', 0)
                 if prime_total <= 0:
+                    print(f"[PDF DEBUG]   Skipping {plan_name_orig} ({provider_code}): Invalid price {prime_total}")
                     continue
                 
+                print(f"[PDF DEBUG]   Collected: {plan_name_orig} ({provider_code}) - {prime_total:.2f} DH")
                 all_plans_with_provider.append({
                     'provider_code': provider_code,
                     'provider_name': anonymous_name,
                     'plan': plan,
                     'plan_name': plan_name,
-                    'plan_name_original': plan.get('plan_name', 'N/A'),
+                    'plan_name_original': plan_name_orig,
                     'pricing': pricing,
                     'price': prime_total
                 })
         
         # FIX: Categorize ALL plans, then pick cheapest per category
         categorized_offers = {}
+        print(f"[PDF DEBUG] Processing {len(all_plans_with_provider)} plans for categorization")
+        
         for plan_item in all_plans_with_provider:
             plan_name = plan_item['plan_name']
             prime_total = plan_item['price']
+            provider_code = plan_item['provider_code']
+            plan_name_orig = plan_item['plan_name_original']
             
             # Check which category this plan matches (check all categories)
             matched_category = None
+            matched_pattern = None
             for cat_key, cat_info in categories.items():
-                if any(pattern in plan_name for pattern in cat_info['patterns']):
-                    matched_category = cat_key
+                for pattern in cat_info['patterns']:
+                    if pattern in plan_name:
+                        matched_category = cat_key
+                        matched_pattern = pattern
+                        break
+                if matched_category:
                     break  # First match wins (categories are mutually exclusive)
             
             if matched_category:
+                current_best = categorized_offers.get(matched_category)
+                current_price = current_best['price'] if current_best else float('inf')
+                
+                print(f"[PDF DEBUG] Plan: {plan_name_orig} ({provider_code}) | Price: {prime_total:.2f} | Category: {matched_category} | Pattern: {matched_pattern} | Current best: {current_price:.2f}")
+                
                 # Update if this is cheaper than current best in category
                 if matched_category not in categorized_offers or prime_total < categorized_offers[matched_category]['price']:
+                    if current_best:
+                        print(f"[PDF DEBUG]   → REPLACING {current_best['plan_name']} ({current_best['provider']}) with {plan_name_orig} ({plan_item['provider_name']})")
                     categorized_offers[matched_category] = {
                         'provider': plan_item['provider_name'],
-                        'plan_name': plan_item['plan_name_original'],
+                        'plan_name': plan_name_orig,
                         'price': prime_total,
                         'pricing': plan_item['pricing'],
                         'plan': plan_item['plan']
                     }
+            else:
+                print(f"[PDF DEBUG] Plan: {plan_name_orig} ({provider_code}) | Price: {prime_total:.2f} | Category: NONE (no match)")
+        
+        print(f"[PDF DEBUG] Final categorized offers:")
+        for cat, offer in categorized_offers.items():
+            print(f"[PDF DEBUG]   {cat}: {offer['plan_name']} ({offer['provider']}) - {offer['price']:.2f} DH")
+            if cat == 'Premium' and abs(offer['price'] - 8111.50) < 0.01:
+                print(f"[PDF DEBUG]   ⚠️  WARNING: Premium price is 8111.50 - investigating source!")
+                print(f"[PDF DEBUG]   ⚠️  Plan details: {offer['plan_name']} from {offer['provider']}")
+                print(f"[PDF DEBUG]   ⚠️  Expected: Sanlam 'Formule premium' at 7091.43 DH")
+        
+        print(f"[PDF DEBUG] ===== PDF Generation Completed =====")
 
         if not categorized_offers:
             return None
@@ -1324,16 +1367,18 @@ def generate_comparison_pdf_old():
             'Basique': {'patterns': ['basique', 'formule initiale', 'optimale mamda', 'basique oto']},
             'Intermédiaire': {'patterns': ['basique+', 'optimal oto', 'formule essentielle', 'confort']},
             'Collision': {'patterns': ['collision', 'confort oto', 'optimale axa']},
-            'Premium': {'patterns': ['tous risques', 'formule premium', 'tous risques oto']}
+            'Premium': {'patterns': ['tous risques', 'formule premium', 'tous risques oto', 'premium', 'tout risque']}
         }
 
         # FIX: Sort providers consistently by provider_code (deterministic order)
-        sorted_providers = sorted(all_plans, key=lambda p: p.get('provider_code', ''))
+        # Note: comparison_service returns 'code' not 'provider_code'
+        sorted_providers = sorted(all_plans, key=lambda p: p.get('code', p.get('provider_code', '')))
         
         # FIX: Assign provider letters consistently based on sorted order
         provider_code_to_letter = {}
         for idx, provider_data in enumerate(sorted_providers):
-            provider_code = provider_data.get('provider_code', '')
+            # Handle both 'code' (from comparison_service) and 'provider_code' (legacy)
+            provider_code = provider_data.get('code') or provider_data.get('provider_code', '')
             if provider_code and provider_code not in provider_code_to_letter:
                 letter = chr(65 + len(provider_code_to_letter))  # A, B, C, D...
                 provider_code_to_letter[provider_code] = letter
@@ -1341,7 +1386,8 @@ def generate_comparison_pdf_old():
         # FIX: Collect ALL plans from ALL providers first (with provider info)
         all_plans_with_provider = []
         for provider_data in sorted_providers:
-            provider_code = provider_data.get('provider_code', '')
+            # Handle both 'code' (from comparison_service) and 'provider_code' (legacy)
+            provider_code = provider_data.get('code') or provider_data.get('provider_code', '')
             anonymous_name = f"Assurance {provider_code_to_letter.get(provider_code, '?')}"
             
             for plan in provider_data.get('plans', []):
@@ -1366,27 +1412,55 @@ def generate_comparison_pdf_old():
         
         # FIX: Categorize ALL plans, then pick cheapest per category
         categorized_offers = {}
+        print(f"[PDF DEBUG] Processing {len(all_plans_with_provider)} plans for categorization")
+        
         for plan_item in all_plans_with_provider:
             plan_name = plan_item['plan_name']
             prime_total = plan_item['price']
+            provider_code = plan_item['provider_code']
+            plan_name_orig = plan_item['plan_name_original']
             
             # Check which category this plan matches (check all categories)
             matched_category = None
+            matched_pattern = None
             for cat_key, cat_info in categories.items():
-                if any(pattern in plan_name for pattern in cat_info['patterns']):
-                    matched_category = cat_key
+                for pattern in cat_info['patterns']:
+                    if pattern in plan_name:
+                        matched_category = cat_key
+                        matched_pattern = pattern
+                        break
+                if matched_category:
                     break  # First match wins (categories are mutually exclusive)
             
             if matched_category:
+                current_best = categorized_offers.get(matched_category)
+                current_price = current_best['price'] if current_best else float('inf')
+                
+                print(f"[PDF DEBUG] Plan: {plan_name_orig} ({provider_code}) | Price: {prime_total:.2f} | Category: {matched_category} | Pattern: {matched_pattern} | Current best: {current_price:.2f}")
+                
                 # Update if this is cheaper than current best in category
                 if matched_category not in categorized_offers or prime_total < categorized_offers[matched_category]['price']:
+                    if current_best:
+                        print(f"[PDF DEBUG]   → REPLACING {current_best['plan_name']} ({current_best['provider']}) with {plan_name_orig} ({plan_item['provider_name']})")
                     categorized_offers[matched_category] = {
                         'provider': plan_item['provider_name'],
-                        'plan_name': plan_item['plan_name_original'],
+                        'plan_name': plan_name_orig,
                         'price': prime_total,
                         'pricing': plan_item['pricing'],
                         'plan': plan_item['plan']
                     }
+            else:
+                print(f"[PDF DEBUG] Plan: {plan_name_orig} ({provider_code}) | Price: {prime_total:.2f} | Category: NONE (no match)")
+        
+        print(f"[PDF DEBUG] Final categorized offers:")
+        for cat, offer in categorized_offers.items():
+            print(f"[PDF DEBUG]   {cat}: {offer['plan_name']} ({offer['provider']}) - {offer['price']:.2f} DH")
+            if cat == 'Premium' and abs(offer['price'] - 8111.50) < 0.01:
+                print(f"[PDF DEBUG]   ⚠️  WARNING: Premium price is 8111.50 - investigating source!")
+                print(f"[PDF DEBUG]   ⚠️  Plan details: {offer['plan_name']} from {offer['provider']}")
+                print(f"[PDF DEBUG]   ⚠️  Expected: Sanlam 'Formule premium' at 7091.43 DH")
+        
+        print(f"[PDF DEBUG] ===== PDF Generation Completed =====")
 
         if not categorized_offers:
             return jsonify({"success": False, "error": "No valid offers found"}), 400
