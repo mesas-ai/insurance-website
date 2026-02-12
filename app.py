@@ -784,16 +784,22 @@ def generate_pdf_bytes(all_plans, vehicle_info, client_info, duration='annual', 
             'Premium': {'patterns': ['tous risques', 'formule premium', 'tous risques oto']}
         }
 
-        # Categorize and find cheapest in each category
-        categorized_offers = {}
-        provider_counter = {}
+        # FIX: Sort providers consistently by provider_code (deterministic order)
+        sorted_providers = sorted(all_plans, key=lambda p: p.get('provider_code', ''))
         
-        for provider_data in all_plans:
+        # FIX: Assign provider letters consistently based on sorted order
+        provider_code_to_letter = {}
+        for idx, provider_data in enumerate(sorted_providers):
             provider_code = provider_data.get('provider_code', '')
-            if provider_code not in provider_counter:
-                provider_counter[provider_code] = chr(65 + len(provider_counter))
-            
-            anonymous_name = f"Assurance {provider_counter[provider_code]}"
+            if provider_code and provider_code not in provider_code_to_letter:
+                letter = chr(65 + len(provider_code_to_letter))  # A, B, C, D...
+                provider_code_to_letter[provider_code] = letter
+        
+        # FIX: Collect ALL plans from ALL providers first (with provider info)
+        all_plans_with_provider = []
+        for provider_data in sorted_providers:
+            provider_code = provider_data.get('provider_code', '')
+            anonymous_name = f"Assurance {provider_code_to_letter.get(provider_code, '?')}"
             
             for plan in provider_data.get('plans', []):
                 plan_name = plan.get('plan_name', '').lower()
@@ -805,17 +811,39 @@ def generate_pdf_bytes(all_plans, vehicle_info, client_info, duration='annual', 
                 if prime_total <= 0:
                     continue
                 
-                for cat_key, cat_info in categories.items():
-                    if any(pattern in plan_name for pattern in cat_info['patterns']):
-                        if cat_key not in categorized_offers or prime_total < categorized_offers[cat_key]['price']:
-                            categorized_offers[cat_key] = {
-                                'provider': anonymous_name,
-                                'plan_name': plan.get('plan_name', 'N/A'),
-                                'price': prime_total,
-                                'pricing': pricing,
-                                'plan': plan
-                            }
-                        break
+                all_plans_with_provider.append({
+                    'provider_code': provider_code,
+                    'provider_name': anonymous_name,
+                    'plan': plan,
+                    'plan_name': plan_name,
+                    'plan_name_original': plan.get('plan_name', 'N/A'),
+                    'pricing': pricing,
+                    'price': prime_total
+                })
+        
+        # FIX: Categorize ALL plans, then pick cheapest per category
+        categorized_offers = {}
+        for plan_item in all_plans_with_provider:
+            plan_name = plan_item['plan_name']
+            prime_total = plan_item['price']
+            
+            # Check which category this plan matches (check all categories)
+            matched_category = None
+            for cat_key, cat_info in categories.items():
+                if any(pattern in plan_name for pattern in cat_info['patterns']):
+                    matched_category = cat_key
+                    break  # First match wins (categories are mutually exclusive)
+            
+            if matched_category:
+                # Update if this is cheaper than current best in category
+                if matched_category not in categorized_offers or prime_total < categorized_offers[matched_category]['price']:
+                    categorized_offers[matched_category] = {
+                        'provider': plan_item['provider_name'],
+                        'plan_name': plan_item['plan_name_original'],
+                        'price': prime_total,
+                        'pricing': plan_item['pricing'],
+                        'plan': plan_item['plan']
+                    }
 
         if not categorized_offers:
             return None
@@ -1051,7 +1079,7 @@ def generate_pdf_bytes(all_plans, vehicle_info, client_info, duration='annual', 
         disclaimer_style = ParagraphStyle('Disclaimer', parent=styles['Normal'], fontSize=6.5,
             textColor=colors.HexColor('#6b7280'), alignment=TA_JUSTIFY, leading=9)
         
-        num_insurances = len(provider_counter)
+        num_insurances = len(provider_code_to_letter)
         disclaimer_text = """
         Note : Ces estimations sont fournies à titre indicatif sur la base de 3 assurances. Les prix et conditions peuvent varier selon votre profil.
         Tarif calculé sur la base d'un CRM 100 (Coefficient Réduction et Majoration).
@@ -1106,7 +1134,9 @@ def process_lead_background(lead_data, callback_url, branding=None):
             params_for_compare['valeur_actuelle'] = params_for_compare['valeur_venale']
         
         # Call comparison service with normalized params (same as Railway form payload)
-        comparison_result = get_all_quotes(params_for_compare)
+        # FIX: Always query all providers for PDF generation to ensure consistency
+        # (Don't pass selected_scrapers=None explicitly - get_all_quotes defaults to all providers)
+        comparison_result = get_all_quotes(params_for_compare, selected_scrapers=None)
         
         providers_with_plans = [p for p in comparison_result.get('providers', []) if p.get('plans')]
         
@@ -1297,16 +1327,22 @@ def generate_comparison_pdf_old():
             'Premium': {'patterns': ['tous risques', 'formule premium', 'tous risques oto']}
         }
 
-        # Categorize and find cheapest in each category
-        categorized_offers = {}
-        provider_counter = {}
+        # FIX: Sort providers consistently by provider_code (deterministic order)
+        sorted_providers = sorted(all_plans, key=lambda p: p.get('provider_code', ''))
         
-        for provider_data in all_plans:
+        # FIX: Assign provider letters consistently based on sorted order
+        provider_code_to_letter = {}
+        for idx, provider_data in enumerate(sorted_providers):
             provider_code = provider_data.get('provider_code', '')
-            if provider_code not in provider_counter:
-                provider_counter[provider_code] = chr(65 + len(provider_counter))
-            
-            anonymous_name = f"Assurance {provider_counter[provider_code]}"
+            if provider_code and provider_code not in provider_code_to_letter:
+                letter = chr(65 + len(provider_code_to_letter))  # A, B, C, D...
+                provider_code_to_letter[provider_code] = letter
+        
+        # FIX: Collect ALL plans from ALL providers first (with provider info)
+        all_plans_with_provider = []
+        for provider_data in sorted_providers:
+            provider_code = provider_data.get('provider_code', '')
+            anonymous_name = f"Assurance {provider_code_to_letter.get(provider_code, '?')}"
             
             for plan in provider_data.get('plans', []):
                 plan_name = plan.get('plan_name', '').lower()
@@ -1318,20 +1354,51 @@ def generate_comparison_pdf_old():
                 if prime_total <= 0:
                     continue
                 
-                for cat_key, cat_info in categories.items():
-                    if any(pattern in plan_name for pattern in cat_info['patterns']):
-                        if cat_key not in categorized_offers or prime_total < categorized_offers[cat_key]['price']:
-                            categorized_offers[cat_key] = {
-                                'provider': anonymous_name,
-                                'plan_name': plan.get('plan_name', 'N/A'),
-                                'price': prime_total,
-                                'pricing': pricing,
-                                'plan': plan
-                            }
-                        break
+                all_plans_with_provider.append({
+                    'provider_code': provider_code,
+                    'provider_name': anonymous_name,
+                    'plan': plan,
+                    'plan_name': plan_name,
+                    'plan_name_original': plan.get('plan_name', 'N/A'),
+                    'pricing': pricing,
+                    'price': prime_total
+                })
+        
+        # FIX: Categorize ALL plans, then pick cheapest per category
+        categorized_offers = {}
+        for plan_item in all_plans_with_provider:
+            plan_name = plan_item['plan_name']
+            prime_total = plan_item['price']
+            
+            # Check which category this plan matches (check all categories)
+            matched_category = None
+            for cat_key, cat_info in categories.items():
+                if any(pattern in plan_name for pattern in cat_info['patterns']):
+                    matched_category = cat_key
+                    break  # First match wins (categories are mutually exclusive)
+            
+            if matched_category:
+                # Update if this is cheaper than current best in category
+                if matched_category not in categorized_offers or prime_total < categorized_offers[matched_category]['price']:
+                    categorized_offers[matched_category] = {
+                        'provider': plan_item['provider_name'],
+                        'plan_name': plan_item['plan_name_original'],
+                        'price': prime_total,
+                        'pricing': plan_item['pricing'],
+                        'plan': plan_item['plan']
+                    }
 
         if not categorized_offers:
             return jsonify({"success": False, "error": "No valid offers found"}), 400
+
+        def _fmt_pdf_num(v):
+            """Format number for PDF: integer when whole, else 2 decimals (avoids 400000.0)."""
+            if v is None: return 'N/A'
+            try:
+                n = float(v)
+                return str(int(n)) if n == int(n) else f"{n:.2f}"
+            except (TypeError, ValueError):
+                return str(v) if v != '' else 'N/A'
 
         # Get user settings for logo
         user_id = session.get('user_id')
@@ -1555,7 +1622,7 @@ def generate_comparison_pdf_old():
         disclaimer_style = ParagraphStyle('Disclaimer', parent=styles['Normal'], fontSize=6.5,
             textColor=colors.HexColor('#6b7280'), alignment=TA_JUSTIFY, leading=9)
         
-        num_insurances = len(provider_counter)
+        num_insurances = len(provider_code_to_letter)
         disclaimer_text = (
             f"<b>Note :</b> Ces estimations sont fournies à titre indicatif sur la base de "
             f"{num_insurances} assurance{'s' if num_insurances > 1 else ''}. "
