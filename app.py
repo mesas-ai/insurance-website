@@ -1185,9 +1185,12 @@ def process_lead_background(lead_data, callback_url, branding=None):
             params_for_compare['valeur_actuelle'] = params_for_compare['valeur_venale']
         
         # Call comparison service with normalized params (same as Railway form payload)
-        # FIX: Always query all providers for PDF generation to ensure consistency
-        # (Don't pass selected_scrapers=None explicitly - get_all_quotes defaults to all providers)
-        comparison_result = get_all_quotes(params_for_compare, selected_scrapers=None)
+        # Use only enabled scrapers (same rule as Railway form) so auto.html follows admin settings
+        enabled_scrapers = DatabaseManager.get_enabled_scrapers()
+        comparison_result = get_all_quotes(
+            params_for_compare,
+            selected_scrapers=enabled_scrapers if enabled_scrapers else None
+        )
         
         providers_with_plans = [p for p in comparison_result.get('providers', []) if p.get('plans')]
         
