@@ -963,6 +963,22 @@ def generate_pdf_bytes(all_plans, vehicle_info, client_info, duration='annual', 
         # Title
         elements.append(Paragraph("Estimation Assurance Auto", title_style))
         elements.append(Paragraph(f"Généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}", subtitle_style))
+        
+        # Disclaimer - moved to top, bold style
+        disclaimer_bold_style = ParagraphStyle('DisclaimerBold', parent=styles['Normal'], fontSize=7,
+            textColor=colors.HexColor('#374151'), alignment=TA_JUSTIFY, leading=10, fontName='Helvetica-Bold')
+        num_insurances = len(provider_code_to_letter)
+        disclaimer_text = (
+            f"Note : Ces estimations sont fournies à titre indicatif sur la base de "
+            f"{num_insurances} assurance{'s' if num_insurances > 1 else ''}. "
+            "Les prix et conditions peuvent varier selon votre profil. "
+            "Tarif calculé sur la base d'un CRM 100 (Coefficient Réduction et Majoration). "
+            "Vous serez contacté pour une cotation précise dans les plus brefs délais, "
+            "afin de vous accompagner dans le choix de l'assurance la plus adaptée à vos besoins "
+            "en fonction des informations complémentaires fournies."
+        )
+        elements.append(Paragraph(disclaimer_text, disclaimer_bold_style))
+        elements.append(Spacer(1, 3*mm))
 
         # Client & Vehicle Info - Side by Side (show count similarly to "Meilleures Offres (4 catégories)")
         num_categories = len(categorized_offers)
@@ -1038,6 +1054,10 @@ def generate_pdf_bytes(all_plans, vehicle_info, client_info, duration='annual', 
             # Add guarantees with thresholds/capital/franchise/selected option when available
             for g in guarantees:
                 name = g.get('title') or g.get('guarantee_name') or g.get('name') or 'Garantie'
+                # Replace "Imtyaz Assistance" with "Inclus" in guarantee names
+                if 'imtyaz assistance' in name.lower():
+                    name = name.replace('Imtyaz Assistance', 'Inclus').replace('imtyaz assistance', 'Inclus')
+                    name = name.replace('Imtyaz', 'Inclus').replace('imtyaz', 'Inclus')
                 included = 'Inclus' if g.get('is_included', True) else 'Non inclus'
                 details = []
                 if g.get('capital_guarantee') is not None:
@@ -1117,18 +1137,6 @@ def generate_pdf_bytes(all_plans, vehicle_info, client_info, duration='annual', 
 
         elements.append(grid_table)
         elements.append(Spacer(1, 3*mm))
-
-        # Disclaimer
-        disclaimer_style = ParagraphStyle('Disclaimer', parent=styles['Normal'], fontSize=6.5,
-            textColor=colors.HexColor('#6b7280'), alignment=TA_JUSTIFY, leading=9)
-        
-        num_insurances = len(provider_code_to_letter)
-        disclaimer_text = """
-        Note : Ces estimations sont fournies à titre indicatif sur la base de 3 assurances. Les prix et conditions peuvent varier selon votre profil.
-        Tarif calculé sur la base d'un CRM 100 (Coefficient Réduction et Majoration).
-        Vous serez contacté pour une cotation précise dans les plus brefs délais, afin de vous accompagner dans le choix de l'assurance la plus adaptée à vos besoins en fonction des informations complémentaires fournies.
-        """
-        elements.append(Paragraph(disclaimer_text.strip(), disclaimer_style))
         
         # Footer
         footer_text = "MesAssurances.ma - Comparateur d'Assurances au Maroc"
@@ -1535,6 +1543,22 @@ def generate_comparison_pdf_old():
         # Title
         elements.append(Paragraph("Estimation Assurance Auto", title_style))
         elements.append(Paragraph(f"Généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}", subtitle_style))
+        
+        # Disclaimer - moved to top, bold style
+        disclaimer_bold_style = ParagraphStyle('DisclaimerBold', parent=styles['Normal'], fontSize=7,
+            textColor=colors.HexColor('#374151'), alignment=TA_JUSTIFY, leading=10, fontName='Helvetica-Bold')
+        num_insurances = len(provider_code_to_letter)
+        disclaimer_text = (
+            f"Note : Ces estimations sont fournies à titre indicatif sur la base de "
+            f"{num_insurances} assurance{'s' if num_insurances > 1 else ''}. "
+            "Les prix et conditions peuvent varier selon votre profil. "
+            "Tarif calculé sur la base d'un CRM 100 (Coefficient Réduction et Majoration). "
+            "Vous serez contacté pour une cotation précise dans les plus brefs délais, "
+            "afin de vous accompagner dans le choix de l'assurance la plus adaptée à vos besoins "
+            "en fonction des informations complémentaires fournies."
+        )
+        elements.append(Paragraph(disclaimer_text, disclaimer_bold_style))
+        elements.append(Spacer(1, 3*mm))
 
         # Client & Vehicle Info - Side by Side (show count similarly to "Meilleures Offres (4 catégories)")
         num_categories = len(categorized_offers)
@@ -1610,6 +1634,10 @@ def generate_comparison_pdf_old():
             # Add guarantees with thresholds/capital/franchise/selected option when available
             for g in guarantees:
                 name = g.get('title') or g.get('guarantee_name') or g.get('name') or 'Garantie'
+                # Replace "Imtyaz Assistance" with "Inclus" in guarantee names
+                if 'imtyaz assistance' in name.lower():
+                    name = name.replace('Imtyaz Assistance', 'Inclus').replace('imtyaz assistance', 'Inclus')
+                    name = name.replace('Imtyaz', 'Inclus').replace('imtyaz', 'Inclus')
                 included = 'Inclus' if g.get('is_included', True) else 'Non inclus'
                 details = []
                 if g.get('capital_guarantee') is not None:
@@ -1691,22 +1719,6 @@ def generate_comparison_pdf_old():
 
         elements.append(grid_table)
         elements.append(Spacer(1, 3*mm))
-
-        # Disclaimer
-        disclaimer_style = ParagraphStyle('Disclaimer', parent=styles['Normal'], fontSize=6.5,
-            textColor=colors.HexColor('#6b7280'), alignment=TA_JUSTIFY, leading=9)
-        
-        num_insurances = len(provider_code_to_letter)
-        disclaimer_text = (
-            f"<b>Note :</b> Ces estimations sont fournies à titre indicatif sur la base de "
-            f"{num_insurances} assurance{'s' if num_insurances > 1 else ''}. "
-            "Les prix et conditions peuvent varier selon votre profil.<br/>"
-            "Tarif calculé sur la base d'un CRM 100 (Coefficient Réduction et Majoration).<br/>"
-            "Vous serez contacté pour une cotation précise dans les plus brefs délais, "
-            "afin de vous accompagner dans le choix de l'assurance la plus adaptée à vos besoins en fonction des informations complémentaires fournies."
-        )
-        
-        elements.append(Paragraph(disclaimer_text, disclaimer_style))
 
         # Capture footer text for fixed-position rendering
         footer_text = user_settings.get('footer_text') if (user_settings and user_settings.get('footer_text')) else None
