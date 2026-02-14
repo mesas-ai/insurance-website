@@ -1249,12 +1249,16 @@ def process_lead_background(lead_data, callback_url, branding=None):
             'pdf': ('comparatif_assurance.pdf', pdf_bytes, 'application/pdf')
         }
         
+        import json
         callback_data = {
             'email': lead_data.get('email'),
-            'lead_id': lead_data.get('lead_id') or lead_data.get('id'),
-            'success': 'true'
+            'lead_id': str(lead_data.get('lead_id') or lead_data.get('id') or ''),
+            'success': 'true',
         }
-        
+        try:
+            callback_data['scrape_data'] = json.dumps(comparison_result, default=str)
+        except Exception:
+            pass  # Don't block callback if serialization fails
         import requests
         resp = requests.post(callback_url, data=callback_data, files=files, timeout=45)
         print(f"Callback response: {resp.status_code}")
