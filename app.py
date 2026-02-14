@@ -1260,7 +1260,11 @@ def process_lead_background(lead_data, callback_url, branding=None):
         except Exception:
             pass  # Don't block callback if serialization fails
         import requests
-        resp = requests.post(callback_url, data=callback_data, files=files, timeout=45)
+        headers = {}
+        callback_secret = os.environ.get('PDF_CALLBACK_SECRET', '').strip()
+        if callback_secret:
+            headers['X-Callback-Secret'] = callback_secret
+        resp = requests.post(callback_url, data=callback_data, files=files, headers=headers or None, timeout=45)
         print(f"Callback response: {resp.status_code}")
 
     except Exception as e:
