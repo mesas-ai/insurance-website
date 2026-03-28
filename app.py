@@ -16,7 +16,7 @@ from datetime import datetime
 from comparison_service import get_all_quotes, compare_insurance
 from scrapers import SCRAPER_FUNCTIONS, shutdown_rma_manager
 from database.models import init_database, DatabaseManager
-from auth import init_admin_user, login_required, admin_required, api_key_or_login_required, get_current_user, login_user, logout_user
+from auth import init_admin_user, login_required, admin_required, api_key_or_login_required, get_current_user, login_user, logout_user, init_system_user, get_system_user_id
 import atexit
 
 app = Flask(__name__, static_folder='static')
@@ -41,6 +41,7 @@ CORS(app,
 # Initialize database and admin user
 init_database()
 init_admin_user()
+init_system_user()
 
 # Register cleanup for RMA browser manager on app shutdown
 atexit.register(shutdown_rma_manager)
@@ -1246,23 +1247,27 @@ def process_lead_background(lead_data, callback_url, branding=None):
         # Use only enabled scrapers (same rule as Railway form) so auto.html follows admin settings
         enabled_scrapers = DatabaseManager.get_enabled_scrapers()
 
-        # Save form submission so health dashboard captures mesassurances.ma requests (user_id=-1)
+        # Save form submission so health dashboard captures mesassurances.ma requests
         form_submission_id = None
-        try:
-            form_submission_id = DatabaseManager.save_form_submission(
-                user_id=-1,
-                form_data=params_for_compare,
-                ip_address=None,
-                user_agent='mesassurances.ma',
-                user_name='mesassurances.ma',
-                user_email=lead_data.get('email')
-            )
-        except Exception as db_err:
-            print(f"[health] Could not save form_submission: {db_err}")
+        system_uid = get_system_user_id()
+        if system_uid:
+            try:
+                form_submission_id = DatabaseManager.save_form_submission(
+                    user_id=system_uid,
+                    form_data=params_for_compare,
+                    ip_address=None,
+                    user_agent='mesassurances.ma',
+                    user_name='mesassurances.ma',
+                    user_email=lead_data.get('email')
+                )
+            except Exception as db_err:
+                print(f"[health] Could not save form_submission: {db_err}")
+        else:
+            print("[health] System user not found, skipping DB log")
 
         comparison_result = get_all_quotes(
             params_for_compare,
-            user_id=-1,
+            user_id=system_uid,
             form_submission_id=form_submission_id,
             selected_scrapers=enabled_scrapers if enabled_scrapers else None
         )

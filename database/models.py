@@ -1197,7 +1197,7 @@ class DatabaseManager:
                     fs.type_plaque, fs.immatriculation,
                     fs.date_naissance, fs.date_permis,
                     fs.ville, fs.user_name, fs.user_email,
-                    CASE WHEN fs.user_id = -1 THEN 'mesassurances.ma' ELSE 'Broker direct' END AS source
+                    CASE WHEN fs.user_name = 'mesassurances.ma' THEN 'mesassurances.ma' ELSE 'Broker direct' END AS source
                 FROM scraper_results sr
                 LEFT JOIN form_submissions fs ON sr.form_submission_id = fs.id
                 WHERE (sr.status != 'success' OR sr.plan_count = 0)

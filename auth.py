@@ -15,7 +15,6 @@ def init_admin_user():
     admin_password = os.getenv('ADMIN_PASSWORD', 'admin123')
     admin_name = os.getenv('ADMIN_NAME', 'Admin')
 
-    # Check if admin exists
     existing_admin = DatabaseManager.get_user_by_email(admin_email)
     if not existing_admin:
         user_id = DatabaseManager.create_user(
@@ -30,6 +29,32 @@ def init_admin_user():
             print(f"Failed to create admin user")
     else:
         print(f"Admin user already exists: {admin_email}")
+
+
+def init_system_user():
+    """Create a dedicated system user for mesassurances.ma requests (used for DB logging)."""
+    import secrets
+    SYSTEM_EMAIL = 'system@mesassurances.ma'
+    existing = DatabaseManager.get_user_by_email(SYSTEM_EMAIL)
+    if not existing:
+        uid = DatabaseManager.create_user(
+            name='mesassurances.ma',
+            email=SYSTEM_EMAIL,
+            password=secrets.token_hex(32),  # random, never used to login
+            is_admin=False
+        )
+        if uid:
+            print(f"System user created: {SYSTEM_EMAIL} (id={uid})")
+        else:
+            print(f"Failed to create system user")
+    else:
+        print(f"System user already exists: {SYSTEM_EMAIL} (id={existing['id']})")
+
+
+def get_system_user_id() -> int:
+    """Return the DB id of the mesassurances.ma system user. Returns None if not found."""
+    user = DatabaseManager.get_user_by_email('system@mesassurances.ma')
+    return user['id'] if user else None
 
 
 def login_required(f):
