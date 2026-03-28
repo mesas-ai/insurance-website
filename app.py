@@ -89,6 +89,64 @@ def admin_scrapers():
     return send_from_directory('static', 'admin_scrapers.html')
 
 
+@app.route('/admin/health')
+@admin_required
+def admin_health():
+    """Serve the scraper health dashboard - admin only"""
+    return send_from_directory('static', 'admin_health.html')
+
+
+@app.route('/api/admin/health/stats', methods=['GET'])
+@admin_required
+def api_health_stats():
+    """Get scraper health stats. hours=0 means all time."""
+    try:
+        hours = int(request.args.get('hours', 24))
+        stats = DatabaseManager.get_scraper_health_stats(hours)
+        counts = DatabaseManager.get_request_counts()
+        return jsonify({'success': True, 'stats': stats, 'counts': counts})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/health/failures', methods=['GET'])
+@admin_required
+def api_health_failures():
+    """Get recent failures with field analysis."""
+    try:
+        provider = request.args.get('provider', None)
+        limit = int(request.args.get('limit', 30))
+        failures = DatabaseManager.get_recent_failures(provider, limit)
+        return jsonify({'success': True, 'failures': failures})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/health/volume', methods=['GET'])
+@admin_required
+def api_health_volume():
+    """Get daily request volume for chart."""
+    try:
+        days = int(request.args.get('days', 30))
+        volume = DatabaseManager.get_volume_by_day(days)
+        return jsonify({'success': True, 'volume': volume})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/health/errors', methods=['GET'])
+@admin_required
+def api_health_errors():
+    """Get top recurring error messages."""
+    try:
+        provider = request.args.get('provider', None)
+        hours = int(request.args.get('hours', 168))
+        errors = DatabaseManager.get_top_errors(provider, hours)
+        return jsonify({'success': True, 'errors': errors})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/admin/scrapers', methods=['GET'])
 @admin_required
 def get_scrapers():

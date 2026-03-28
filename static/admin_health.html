@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Santé RPA - MESAS TECH</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } } } }
+    </script>
+    <style>
+        :root {
+            --primary-blue: #2569eb;
+            --primary-blue-dark: #0b1220;
+            --dark-slate: #0f172a;
+            --light-slate: #f8fafc;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--light-slate); color: #1e293b; }
+        .gradient-bg { background: linear-gradient(135deg, var(--primary-blue) 0%, #1d4ed8 100%); }
+        .glass {
+            background: rgba(255,255,255,0.97);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226,232,240,0.8);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        }
+        .status-ok    { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .status-warn  { background: #fef9c3; color: #854d0e; border: 1px solid #fde68a; }
+        .status-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .status-none  { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+        .bar-axa    { background: #00008F; }
+        .bar-mcma   { background: #2fd0a7; }
+        .bar-rma    { background: #1E3A8A; }
+        .bar-sanlam { background: #0066B3; }
+        .bar-other  { background: #64748b; }
+        .dot-axa    { background: #00008F; }
+        .dot-mcma   { background: #2fd0a7; }
+        .dot-rma    { background: #1E3A8A; }
+        .dot-sanlam { background: #0066B3; }
+        .dot-other  { background: #64748b; }
+        .spinner { border: 3px solid #e2e8f0; border-top-color: #2569eb; border-radius: 50%; width: 24px; height: 24px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .fade-in { animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="font-sans antialiased bg-slate-50 min-h-screen">
+
+<!-- Header -->
+<div class="gradient-bg py-8 shadow-lg border-b border-blue-700">
+    <div class="max-w-7xl mx-auto px-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <span class="text-2xl font-bold text-white mb-1 block">MESAS TECH</span>
+                <h1 class="text-3xl font-extrabold text-white">Santé des Scrapers RPA</h1>
+                <p class="text-white/80 text-sm mt-1">Monitoring en temps réel — par assureur, par champ, par période</p>
+            </div>
+            <div class="flex gap-3 flex-wrap justify-end">
+                <a href="/admin" class="px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white rounded-lg font-semibold transition-all border border-white/20">
+                    ← Admin
+                </a>
+                <a href="/admin/scrapers" class="px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white rounded-lg font-semibold transition-all border border-white/20">
+                    Modules RPA
+                </a>
+                <button onclick="refreshAll()" id="refreshBtn"
+                    class="px-5 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg font-semibold transition-all flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Actualiser
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-6 py-8 space-y-8">
+
+    <!-- Time Filter -->
+    <div class="glass rounded-2xl p-5 flex flex-wrap items-center gap-3">
+        <span class="font-semibold text-slate-700 text-sm">Période :</span>
+        <div class="flex gap-2 flex-wrap">
+            <button onclick="setHours(24)"   data-h="24"   class="filter-btn active-filter px-4 py-1.5 rounded-full text-sm font-medium transition-all">Aujourd'hui</button>
+            <button onclick="setHours(168)"  data-h="168"  class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium transition-all">7 jours</button>
+            <button onclick="setHours(720)"  data-h="720"  class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium transition-all">30 jours</button>
+            <button onclick="setHours(0)"    data-h="0"    class="filter-btn px-4 py-1.5 rounded-full text-sm font-medium transition-all">Tout</button>
+        </div>
+        <span class="ml-auto text-xs text-slate-400" id="lastUpdated">—</span>
+    </div>
+
+    <!-- Global Counts -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="globalCounts">
+        <div class="glass rounded-2xl p-5 text-center"><div class="text-3xl font-extrabold text-blue-600" id="cnt-today">—</div><div class="text-xs text-slate-500 mt-1">Aujourd'hui</div></div>
+        <div class="glass rounded-2xl p-5 text-center"><div class="text-3xl font-extrabold text-blue-600" id="cnt-week">—</div><div class="text-xs text-slate-500 mt-1">7 derniers jours</div></div>
+        <div class="glass rounded-2xl p-5 text-center"><div class="text-3xl font-extrabold text-blue-600" id="cnt-month">—</div><div class="text-xs text-slate-500 mt-1">30 derniers jours</div></div>
+        <div class="glass rounded-2xl p-5 text-center"><div class="text-3xl font-extrabold text-blue-600" id="cnt-all">—</div><div class="text-xs text-slate-500 mt-1">Total (depuis début)</div></div>
+    </div>
+
+    <!-- Per-Insurer Status Cards -->
+    <div>
+        <h2 class="text-lg font-bold text-slate-800 mb-4">Statut par Assureur</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="insurerCards">
+            <div class="glass rounded-2xl p-6 flex items-center justify-center"><div class="spinner"></div></div>
+            <div class="glass rounded-2xl p-6 flex items-center justify-center"><div class="spinner"></div></div>
+            <div class="glass rounded-2xl p-6 flex items-center justify-center"><div class="spinner"></div></div>
+            <div class="glass rounded-2xl p-6 flex items-center justify-center"><div class="spinner"></div></div>
+        </div>
+    </div>
+
+    <!-- Volume Chart (bar) -->
+    <div class="glass rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-slate-800">Volume de requêtes (30 derniers jours)</h2>
+            <div class="flex gap-4 text-xs text-slate-500" id="chartLegend"></div>
+        </div>
+        <div id="volumeChart" class="overflow-x-auto">
+            <div class="flex items-center justify-center h-32"><div class="spinner"></div></div>
+        </div>
+    </div>
+
+    <!-- Top Errors -->
+    <div class="glass rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-slate-800">Erreurs les plus fréquentes</h2>
+            <select id="errorProviderFilter" onchange="loadErrors()" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-600">
+                <option value="">Tous les assureurs</option>
+                <option value="axa">AXA</option>
+                <option value="mcma">MCMA</option>
+                <option value="rma">RMA</option>
+                <option value="sanlam">Sanlam</option>
+            </select>
+        </div>
+        <div id="topErrors">
+            <div class="flex items-center justify-center h-16"><div class="spinner"></div></div>
+        </div>
+    </div>
+
+    <!-- Recent Failures -->
+    <div class="glass rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-slate-800">Échecs récents — Détail par champ</h2>
+            <div class="flex gap-2">
+                <select id="failureProviderFilter" onchange="loadFailures()" class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-600">
+                    <option value="">Tous les assureurs</option>
+                    <option value="axa">AXA</option>
+                    <option value="mcma">MCMA</option>
+                    <option value="rma">RMA</option>
+                    <option value="sanlam">Sanlam</option>
+                </select>
+            </div>
+        </div>
+        <div id="failuresTable">
+            <div class="flex items-center justify-center h-16"><div class="spinner"></div></div>
+        </div>
+    </div>
+
+</div><!-- end max-w -->
+
+<script>
+let currentHours = 24;
+
+const PROVIDER_COLORS = {
+    axa: '#00008F', mcma: '#2fd0a7', rma: '#1E3A8A', sanlam: '#0066B3'
+};
+const PROVIDER_LABELS = {
+    axa: 'AXA Assurance', mcma: 'MAMDA-MCMA', rma: 'RMA Watanya', sanlam: 'Sanlam'
+};
+
+function setHours(h) {
+    currentHours = h;
+    document.querySelectorAll('.filter-btn').forEach(b => {
+        b.classList.toggle('active-filter', parseInt(b.dataset.h) === h);
+    });
+    refreshAll();
+}
+
+async function refreshAll() {
+    const btn = document.getElementById('refreshBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px"></div> Chargement...';
+    try {
+        await Promise.all([loadStats(), loadVolume(), loadErrors(), loadFailures()]);
+        document.getElementById('lastUpdated').textContent = 'Mis à jour : ' + new Date().toLocaleTimeString('fr-FR');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Actualiser';
+    }
+}
+
+async function loadStats() {
+    const res = await fetch(`/api/admin/health/stats?hours=${currentHours}`);
+    const data = await res.json();
+    if (!data.success) return;
+
+    // Global counts
+    const c = data.counts || {};
+    document.getElementById('cnt-today').textContent  = (c.today  ?? '—').toLocaleString();
+    document.getElementById('cnt-week').textContent   = (c.week   ?? '—').toLocaleString();
+    document.getElementById('cnt-month').textContent  = (c.month  ?? '—').toLocaleString();
+    document.getElementById('cnt-all').textContent    = (c.all_time ?? '—').toLocaleString();
+
+    // Insurer cards
+    const stats = data.stats || {};
+    const providers = ['axa', 'mcma', 'rma', 'sanlam'];
+    const container = document.getElementById('insurerCards');
+    container.innerHTML = '';
+
+    providers.forEach(code => {
+        const s = stats[code];
+        const label = PROVIDER_LABELS[code] || code.toUpperCase();
+        const color = PROVIDER_COLORS[code] || '#64748b';
+
+        if (!s) {
+            container.innerHTML += `
+            <div class="glass rounded-2xl p-6 fade-in">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-3 h-3 rounded-full" style="background:${color}"></div>
+                    <span class="font-bold text-slate-800">${label}</span>
+                </div>
+                <div class="status-none rounded-xl px-3 py-2 text-sm font-medium mb-3">Aucune donnée</div>
+                <p class="text-xs text-slate-400">Aucune requête sur cette période</p>
+            </div>`;
+            return;
+        }
+
+        const rate = s.success_rate;
+        const statusClass = rate >= 90 ? 'status-ok' : rate >= 70 ? 'status-warn' : 'status-error';
+        const statusIcon  = rate >= 90 ? '✅' : rate >= 70 ? '⚠️' : '❌';
+        const statusLabel = rate >= 90 ? 'Opérationnel' : rate >= 70 ? 'Dégradé' : 'En échec';
+
+        container.innerHTML += `
+        <div class="glass rounded-2xl p-6 fade-in">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-3 h-3 rounded-full" style="background:${color}"></div>
+                <span class="font-bold text-slate-800">${label}</span>
+            </div>
+            <div class="${statusClass} rounded-xl px-3 py-2 text-sm font-semibold mb-4">
+                ${statusIcon} ${statusLabel}
+            </div>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-slate-500">Taux de succès</span>
+                    <span class="font-bold text-slate-800">${rate}%</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2">
+                    <div class="h-2 rounded-full transition-all" style="width:${rate}%;background:${color}"></div>
+                </div>
+                <div class="flex justify-between text-xs text-slate-400 pt-1">
+                    <span>✅ ${s.successes} succès</span>
+                    <span>❌ ${s.failures} échecs</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500">Total requêtes</span>
+                    <span class="font-semibold">${s.total}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500">Temps moyen</span>
+                    <span class="font-semibold">${s.avg_time_sec}s</span>
+                </div>
+                <div class="text-xs text-slate-400 pt-1">
+                    Dernière tentative :<br>
+                    ${s.last_attempt ? new Date(s.last_attempt).toLocaleString('fr-FR') : 'Jamais'}
+                </div>
+            </div>
+        </div>`;
+    });
+}
+
+async function loadVolume() {
+    const res = await fetch('/api/admin/health/volume?days=30');
+    const data = await res.json();
+    if (!data.success || !data.volume.length) {
+        document.getElementById('volumeChart').innerHTML = '<p class="text-slate-400 text-sm text-center py-8">Aucune donnée disponible</p>';
+        return;
+    }
+
+    // Group by day
+    const byDay = {};
+    const providers = new Set();
+    data.volume.forEach(row => {
+        if (!byDay[row.day]) byDay[row.day] = {};
+        byDay[row.day][row.provider_code] = row.total;
+        providers.add(row.provider_code);
+    });
+
+    const days = Object.keys(byDay).sort().slice(-30);
+    const provList = [...providers].sort();
+    const maxVal = Math.max(...days.map(d => Object.values(byDay[d] || {}).reduce((a,b) => a+b, 0)), 1);
+
+    // Legend
+    document.getElementById('chartLegend').innerHTML = provList.map(p =>
+        `<span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-sm" style="background:${PROVIDER_COLORS[p]||'#64748b'}"></span>${(PROVIDER_LABELS[p]||p)}</span>`
+    ).join('');
+
+    // Chart
+    const bars = days.map(day => {
+        const dayData = byDay[day] || {};
+        const total = provList.reduce((s, p) => s + (dayData[p] || 0), 0);
+        const heightPct = Math.round(total / maxVal * 100);
+        const segments = provList.map(p => {
+            const pct = Math.round((dayData[p] || 0) / maxVal * 100);
+            return `<div style="height:${pct}%;background:${PROVIDER_COLORS[p]||'#64748b'}" title="${PROVIDER_LABELS[p]||p}: ${dayData[p]||0}"></div>`;
+        }).join('');
+        const shortDay = day.slice(5); // MM-DD
+        return `
+        <div class="flex flex-col items-center gap-1 min-w-[28px]">
+            <span class="text-xs text-slate-400">${total||''}</span>
+            <div class="w-6 flex flex-col-reverse rounded overflow-hidden" style="height:80px">
+                ${segments}
+            </div>
+            <span class="text-xs text-slate-400 rotate-45 origin-left mt-1" style="font-size:9px">${shortDay}</span>
+        </div>`;
+    }).join('');
+
+    document.getElementById('volumeChart').innerHTML = `<div class="flex items-end gap-1 pt-2 pb-6 min-w-max">${bars}</div>`;
+}
+
+async function loadErrors() {
+    const provider = document.getElementById('errorProviderFilter').value;
+    const url = `/api/admin/health/errors?hours=${currentHours}${provider ? '&provider='+provider : ''}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const container = document.getElementById('topErrors');
+
+    if (!data.success || !data.errors.length) {
+        container.innerHTML = '<p class="text-slate-400 text-sm text-center py-6">✅ Aucune erreur sur cette période</p>';
+        return;
+    }
+
+    const rows = data.errors.map(e => {
+        const color = PROVIDER_COLORS[e.provider_code] || '#64748b';
+        const label = PROVIDER_LABELS[e.provider_code] || e.provider_code;
+        return `
+        <tr class="border-b border-slate-100 hover:bg-slate-50 fade-in">
+            <td class="py-3 px-4">
+                <span class="inline-flex items-center gap-2 text-sm font-medium">
+                    <span class="w-2 h-2 rounded-full" style="background:${color}"></span>
+                    ${label}
+                </span>
+            </td>
+            <td class="py-3 px-4 text-sm text-slate-600 max-w-xs truncate" title="${e.error_message||''}">
+                ${e.error_message || '<span class="text-slate-400 italic">Aucun message</span>'}
+            </td>
+            <td class="py-3 px-4 text-center">
+                <span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-full">${e.occurrences}×</span>
+            </td>
+            <td class="py-3 px-4 text-xs text-slate-400">
+                ${e.last_seen ? new Date(e.last_seen).toLocaleString('fr-FR') : '—'}
+            </td>
+        </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead><tr class="text-xs text-slate-500 uppercase border-b border-slate-200">
+                <th class="py-2 px-4">Assureur</th>
+                <th class="py-2 px-4">Message d'erreur</th>
+                <th class="py-2 px-4 text-center">Occurrences</th>
+                <th class="py-2 px-4">Dernière fois</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+        </table>
+    </div>`;
+}
+
+async function loadFailures() {
+    const provider = document.getElementById('failureProviderFilter').value;
+    const url = `/api/admin/health/failures?limit=30${provider ? '&provider='+provider : ''}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const container = document.getElementById('failuresTable');
+
+    if (!data.success || !data.failures.length) {
+        container.innerHTML = '<p class="text-slate-400 text-sm text-center py-6">✅ Aucun échec récent</p>';
+        return;
+    }
+
+    const rows = data.failures.map(f => {
+        const color = PROVIDER_COLORS[f.provider_code] || '#64748b';
+        const label = PROVIDER_LABELS[f.provider_code] || f.provider_code;
+        const fields = (f.problematic_fields || []).map(field =>
+            `<span class="inline-block bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full mr-1 mb-1">${field}</span>`
+        ).join('') || '<span class="text-slate-400 text-xs italic">Non identifié</span>';
+
+        const formFields = [
+            ['Marque', f.marque], ['Modèle', f.modele], ['Carburant', f.carburant],
+            ['Date MEC', f.date_mec], ['Valeur neuf', f.valeur_neuf ? f.valeur_neuf + ' DH' : null],
+            ['Valeur actuelle', f.valeur_actuelle ? f.valeur_actuelle + ' DH' : null],
+            ['Puissance', f.puissance_fiscale ? f.puissance_fiscale + ' CV' : null],
+            ['Places', f.nombre_places], ['Plaque', f.type_plaque],
+            ['Ville', f.ville],
+        ].filter(([,v]) => v).map(([k,v]) =>
+            `<span class="text-xs text-slate-500">${k}: <span class="font-medium text-slate-700">${v}</span></span>`
+        ).join(' · ');
+
+        return `
+        <tr class="border-b border-slate-100 hover:bg-slate-50 fade-in align-top">
+            <td class="py-3 px-4 whitespace-nowrap">
+                <span class="inline-flex items-center gap-2 text-sm font-semibold">
+                    <span class="w-2 h-2 rounded-full" style="background:${color}"></span>
+                    ${label}
+                </span>
+                <div class="text-xs text-slate-400 mt-1">${f.created_at ? new Date(f.created_at).toLocaleString('fr-FR') : '—'}</div>
+                <div class="text-xs mt-1">
+                    <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">${f.source || '—'}</span>
+                </div>
+            </td>
+            <td class="py-3 px-4 max-w-xs">
+                <div class="text-sm text-red-600 font-medium mb-1">${f.error_message || '<span class="text-slate-400 italic">Pas de message</span>'}</div>
+                <div class="text-xs text-slate-500">${f.fetch_time ? f.fetch_time + 's' : ''} · ${f.plan_count ?? 0} offres</div>
+            </td>
+            <td class="py-3 px-4">
+                <div class="mb-2">${fields}</div>
+                <div class="text-xs text-slate-400 leading-relaxed">${formFields}</div>
+            </td>
+            <td class="py-3 px-4 text-xs text-slate-500 whitespace-nowrap">
+                ${f.user_name || '—'}<br>
+                <span class="text-slate-400">${f.user_email || ''}</span>
+            </td>
+        </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead><tr class="text-xs text-slate-500 uppercase border-b border-slate-200">
+                <th class="py-2 px-4">Assureur / Date</th>
+                <th class="py-2 px-4">Erreur</th>
+                <th class="py-2 px-4">Champs problématiques + Données</th>
+                <th class="py-2 px-4">Utilisateur</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+        </table>
+    </div>`;
+}
+
+// Style active filter button
+const style = document.createElement('style');
+style.textContent = `.active-filter { background: #2569eb; color: white; } .filter-btn:not(.active-filter) { background: #f1f5f9; color: #475569; }`;
+document.head.appendChild(style);
+
+// Load on page ready
+document.addEventListener('DOMContentLoaded', refreshAll);
+</script>
+</body>
+</html>

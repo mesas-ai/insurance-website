@@ -1134,6 +1134,225 @@ class DatabaseManager:
             return False
 
 
+    # ============ Health Dashboard Queries (READ-ONLY) ============
+
+    @staticmethod
+    def get_scraper_health_stats(hours: int = 24) -> dict:
+        """Get success/failure stats per scraper for the given time window. READ-ONLY."""
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        try:
+            cursor.execute("""
+                SELECT
+                    provider_code,
+                    provider_name,
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN status = 'success' AND plan_count > 0 THEN 1 ELSE 0 END) AS successes,
+                    SUM(CASE WHEN status != 'success' OR plan_count = 0 THEN 1 ELSE 0 END) AS failures,
+                    ROUND(AVG(fetch_time), 2) AS avg_time_sec,
+                    MAX(created_at) AS last_attempt
+                FROM scraper_results
+                WHERE (%s = 0 OR created_at >= DATE_SUB(NOW(), INTERVAL %s HOUR))
+                GROUP BY provider_code, provider_name
+                ORDER BY provider_code
+            """, (hours, hours))
+            rows = cursor.fetchall()
+            stats = {}
+            for row in rows:
+                code = row['provider_code']
+                total = row['total'] or 0
+                successes = row['successes'] or 0
+                stats[code] = {
+                    'provider_name': row['provider_name'],
+                    'total': total,
+                    'successes': successes,
+                    'failures': row['failures'] or 0,
+                    'success_rate': round(successes / total * 100, 1) if total > 0 else 0,
+                    'avg_time_sec': float(row['avg_time_sec']) if row['avg_time_sec'] else 0,
+                    'last_attempt': row['last_attempt'].isoformat() if row['last_attempt'] else None,
+                }
+            return stats
+        finally:
+            cursor.close()
+            conn.close()
+
+    @staticmethod
+    def get_recent_failures(provider_code: str = None, limit: int = 30) -> list:
+        """Get recent failed scraper results with form data. READ-ONLY."""
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        try:
+            base_query = """
+                SELECT
+                    sr.id,
+                    sr.provider_code,
+                    sr.provider_name,
+                    sr.error_message,
+                    sr.fetch_time,
+                    sr.plan_count,
+                    sr.created_at,
+                    fs.marque, fs.modele, fs.carburant,
+                    fs.date_mec, fs.valeur_neuf, fs.valeur_actuelle,
+                    fs.puissance_fiscale, fs.nombre_places,
+                    fs.type_plaque, fs.immatriculation,
+                    fs.date_naissance, fs.date_permis,
+                    fs.ville, fs.user_name, fs.user_email,
+                    CASE WHEN fs.user_id = -1 THEN 'mesassurances.ma' ELSE 'Broker direct' END AS source
+                FROM scraper_results sr
+                LEFT JOIN form_submissions fs ON sr.form_submission_id = fs.id
+                WHERE (sr.status != 'success' OR sr.plan_count = 0)
+            """
+            params = []
+            if provider_code:
+                base_query += " AND sr.provider_code = %s"
+                params.append(provider_code)
+            base_query += " ORDER BY sr.created_at DESC LIMIT %s"
+            params.append(limit)
+
+            cursor.execute(base_query, params)
+            rows = cursor.fetchall()
+
+            results = []
+            for row in rows:
+                # Parse which fields are problematic from the error message
+                problematic = _parse_field_from_error(row.get('error_message', ''), row)
+                entry = dict(row)
+                entry['problematic_fields'] = problematic
+                if entry.get('created_at'):
+                    entry['created_at'] = entry['created_at'].isoformat()
+                results.append(entry)
+            return results
+        finally:
+            cursor.close()
+            conn.close()
+
+    @staticmethod
+    def get_volume_by_day(days: int = 30) -> list:
+        """Get request volume per day per provider. READ-ONLY."""
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        try:
+            cursor.execute("""
+                SELECT
+                    DATE(created_at) AS day,
+                    provider_code,
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN status = 'success' AND plan_count > 0 THEN 1 ELSE 0 END) AS successes
+                FROM scraper_results
+                WHERE created_at >= DATE_SUB(NOW(), INTERVAL %s DAY)
+                GROUP BY DATE(created_at), provider_code
+                ORDER BY day DESC, provider_code
+            """, (days,))
+            rows = cursor.fetchall()
+            for row in rows:
+                if row.get('day'):
+                    row['day'] = row['day'].isoformat()
+            return rows
+        finally:
+            cursor.close()
+            conn.close()
+
+    @staticmethod
+    def get_top_errors(provider_code: str = None, hours: int = 168) -> list:
+        """Get most frequent error messages. READ-ONLY."""
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        try:
+            query = """
+                SELECT
+                    provider_code,
+                    provider_name,
+                    error_message,
+                    COUNT(*) AS occurrences,
+                    MAX(created_at) AS last_seen
+                FROM scraper_results
+                WHERE (status != 'success' OR plan_count = 0)
+                  AND error_message IS NOT NULL
+                  AND (%s = 0 OR created_at >= DATE_SUB(NOW(), INTERVAL %s HOUR))
+            """
+            params = [hours, hours]
+            if provider_code:
+                query += " AND provider_code = %s"
+                params.append(provider_code)
+            query += " GROUP BY provider_code, provider_name, error_message ORDER BY occurrences DESC LIMIT 20"
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            for row in rows:
+                if row.get('last_seen'):
+                    row['last_seen'] = row['last_seen'].isoformat()
+            return rows
+        finally:
+            cursor.close()
+            conn.close()
+
+    @staticmethod
+    def get_request_counts(provider_code: str = None) -> dict:
+        """Get total request counts: today / 7d / 30d / all time. READ-ONLY."""
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        try:
+            base = "SELECT COUNT(*) AS cnt FROM scraper_results WHERE 1=1"
+            extra = " AND provider_code = %s" if provider_code else ""
+            p = [provider_code] if provider_code else []
+
+            def count(where_extra, params_extra):
+                cursor.execute(base + extra + where_extra, p + params_extra)
+                return cursor.fetchone()['cnt']
+
+            return {
+                'today':    count(" AND DATE(created_at) = CURDATE()", []),
+                'week':     count(" AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)", []),
+                'month':    count(" AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)", []),
+                'all_time': count("", []),
+            }
+        finally:
+            cursor.close()
+            conn.close()
+
+
+def _parse_field_from_error(error_msg: str, row: dict) -> list:
+    """
+    Parse error message + form row to identify which fields are likely problematic.
+    Returns list of field names that appear suspicious.
+    """
+    if not error_msg:
+        error_msg = ''
+    error_lower = error_msg.lower()
+
+    FIELD_KEYWORDS = {
+        'date_mec':          ['date_mec', 'date mec', 'date d\'effet', 'date effet', 'circulation', 'mise en circulation'],
+        'date_naissance':    ['date_naissance', 'naissance', 'birth', 'age'],
+        'date_permis':       ['date_permis', 'permis', 'licence', 'license'],
+        'marque':            ['marque', 'brand', 'brand code', 'make'],
+        'modele':            ['modele', 'model'],
+        'carburant':         ['carburant', 'fuel', 'energie', 'energy'],
+        'valeur_neuf':       ['valeur_neuf', 'valeur neuf', 'new value', 'valeur à neuf'],
+        'valeur_actuelle':   ['valeur_actuelle', 'valeur actuelle', 'venale', 'market value'],
+        'puissance_fiscale': ['puissance', 'fiscal', 'horsepower', 'horse power', 'cv'],
+        'nombre_places':     ['places', 'seats', 'nombre_places'],
+        'immatriculation':   ['immatriculation', 'plaque', 'plate', 'registration'],
+        'type_plaque':       ['type_plaque', 'type plaque', 'plate type'],
+        'ville':             ['ville', 'city', 'location'],
+    }
+
+    found = []
+    for field, keywords in FIELD_KEYWORDS.items():
+        for kw in keywords:
+            if kw in error_lower:
+                found.append(field)
+                break
+
+    # Also flag fields that are empty/null in the form data
+    check_fields = ['marque', 'date_mec', 'valeur_neuf', 'valeur_actuelle',
+                    'puissance_fiscale', 'carburant', 'date_naissance', 'date_permis']
+    for field in check_fields:
+        val = row.get(field)
+        if (val is None or str(val).strip() == '') and field not in found:
+            found.append(field + ' (vide)')
+
+    return found
+
+
 # Initialize database on module import
 if __name__ == "__main__":
     init_database()
