@@ -1245,8 +1245,25 @@ def process_lead_background(lead_data, callback_url, branding=None):
         # Call comparison service with normalized params (same as Railway form payload)
         # Use only enabled scrapers (same rule as Railway form) so auto.html follows admin settings
         enabled_scrapers = DatabaseManager.get_enabled_scrapers()
+
+        # Save form submission so health dashboard captures mesassurances.ma requests (user_id=-1)
+        form_submission_id = None
+        try:
+            form_submission_id = DatabaseManager.save_form_submission(
+                user_id=-1,
+                form_data=params_for_compare,
+                ip_address=None,
+                user_agent='mesassurances.ma',
+                user_name='mesassurances.ma',
+                user_email=lead_data.get('email')
+            )
+        except Exception as db_err:
+            print(f"[health] Could not save form_submission: {db_err}")
+
         comparison_result = get_all_quotes(
             params_for_compare,
+            user_id=-1,
+            form_submission_id=form_submission_id,
             selected_scrapers=enabled_scrapers if enabled_scrapers else None
         )
         
